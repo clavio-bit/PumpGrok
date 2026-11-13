@@ -281,6 +281,9 @@ async def test_score_report_records_pool_evidence_and_a_low_liquidity_fail() -> 
     statuses = {row["id"]: row for row in out["checks"]}
     assert statuses["lp_status"]["status"] == "pass"
     assert statuses["liquidity_depth"]["status"] == "fail"
+    assert out["verdict_recommendation"] == "KILL"
+    assert out["failed_required_checks"] == ["liquidity_depth"]
+    assert out["hard_veto"] is False
     evidence = {item["check"]: item for item in out["evidence"]}
     assert evidence["lp_status"]["slot"] == FIXTURE["slot"]
     assert evidence["liquidity_depth"]["slot"] == FIXTURE["slot"]

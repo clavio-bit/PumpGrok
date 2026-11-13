@@ -382,6 +382,7 @@ async def test_score_report_honeypot_fail_kills_even_when_the_score_would_clear(
     assert out["score"] == 75
     assert out["verdict_recommendation"] == "KILL"
     assert out["hard_veto"] is False
+    assert out["failed_required_checks"] == ["honeypot"]
     assert out["checks"][0]["id"] == "honeypot"
     assert out["checks"][0]["status"] == "fail"
 
