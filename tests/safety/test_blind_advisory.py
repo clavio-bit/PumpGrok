@@ -246,6 +246,7 @@ async def test_holder_blind_is_advisory_without_provider(
     assert isinstance(row.reason, str) and row.reason
     assert "top10_concentration" in out.blind_checks
     assert "top10_concentration" in out.advisory_blind_checks
+    assert out.failed_required_checks == []
     assert out.verdict_recommendation != "KILL"
 
 

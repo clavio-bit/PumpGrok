@@ -238,7 +238,7 @@ tenacity retries. Failover rotates to the next URL on timeout, 5xx, 429, or
 |---|---|
 | description | Composable rug/honeypot heuristics producing a scored report with reasons; thresholds configurable; never a bare boolean (spec `SAFETY_TOOLS`, xml line 96). Implements the 10-check list at `agents/risk.md:39-49` plus vendor vetoes (`CREATOR_SHARE_VETO=0.25`, `TOP5_SHARE_VETO=0.80`, `vendor/grokbot-pumpfun/src/analyzer.py:34-35`) |
 | input | `mint: Mint` (required); `intended_size_lamports: Lamports >= 0` (default 0); `thresholds: object or null` (override of `config.safety.thresholds`; keys below); `checks: list[str] or null` (subset to run; default all) |
-| output | `score: int 0..100` (100 = safest); `verdict_recommendation: enum[CLEAR, CONDITIONAL, KILL]` (recommendation only; RISK issues the verdict from the `JournalNote` `note_kind: safety_report` that RUG appends); `hard_veto: bool`; `checks: list[{id: enum[mint_authority, freeze_authority, lp_status, transfer_tax, honeypot, top10_concentration, bundler_cluster, deployer_history, token2022_extensions, liquidity_depth], status: enum[pass, warn, fail, blind], value: any, threshold: any, weight: Ratio, reason: str}]`; `blind_checks: list[str]`; `evidence: list[{check: str, source: str, slot: int or null, fetched_at: datetime}]`; `thresholds_used: object` |
+| output | `score: int 0..100` (100 = safest); `verdict_recommendation: enum[CLEAR, CONDITIONAL, KILL]` (recommendation only; RISK issues the verdict from the `JournalNote` `note_kind: safety_report` that RUG appends); `hard_veto: bool` (top-5 share above `top5_share_veto` only; a required fail does not set it); `checks: list[{id: enum[mint_authority, freeze_authority, lp_status, transfer_tax, honeypot, top10_concentration, bundler_cluster, deployer_history, token2022_extensions, liquidity_depth], status: enum[pass, warn, fail, blind], value: any, threshold: any, weight: Ratio, reason: str}]`; `blind_checks: list[str]`; `advisory_blind_checks: list[str]`; `failed_required_checks: list[str]` (required ids whose status is fail; these force KILL); `evidence: list[{check: str, source: str, slot: int or null, fetched_at: datetime}]`; `thresholds_used: object` |
 | side_effect | read |
 | timeout_s | 45 (composes up to 8 onchain/market calls) |
 | retry | none at this level (inner tools retry) |
@@ -253,8 +253,15 @@ Threshold keys (config `safety.thresholds`, every value REVIEW; defaults from
 `liquidity_multiple_min: 10`, `liquidity_multiple_recommended: 20`,
 `lp_lock_min_days: 180`, `creator_share_veto: 0.25`, `top5_share_veto: 0.80`,
 `kill_below_score: 40`, `conditional_below_score: 70`. Any `blind` check on a required
-id forces `verdict_recommendation = KILL` (constitution clause 10). `honeypot` and
-`transfer_tax` are required (amendment 2026-11-13). The honeypot size is
+id forces `verdict_recommendation = KILL` (constitution clause 10), except the
+SAFE-4/SAFE-8 holder pair while no paid RPC provider is recorded. Any `fail` on a
+required id forces KILL the same way, regardless of score, and those ids are
+listed in `failed_required_checks`. A `warn` does not force KILL. `bundler_cluster`
+is advisory, so a fail there does not force KILL. The holder carve-out is BLIND
+only: a real fail on `top10_concentration` or `deployer_history` forces KILL.
+`hard_veto` stays the top-5 share veto and is independent of `failed_required_checks`;
+both force KILL and both can be true. The score is unchanged (warn -10, fail -25).
+`honeypot` and `transfer_tax` are required (amendment 2026-11-13). The honeypot size is
 `paper_equity_sol * max_trade_fraction` (0.2 SOL at the defaults) unless
 `safety.honeypot_probe_sol` is set. Leg one is a WSOL buy of that many lamports.
 Leg two sells the token outAmount back to WSOL. Jupiter downtime, a malformed

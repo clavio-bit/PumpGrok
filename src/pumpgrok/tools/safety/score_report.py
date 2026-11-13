@@ -5,9 +5,12 @@ top_holders, deployer_history, market.liquidity) and scores 0..100
 (100 = safest) with per-check reasons. Thresholds come from config
 (``SafetyThresholds``) with an optional caller override; any check without
 data returns ``blind``, never an exception. A blind check on a required
-id, a honeypot fail, or a hard top-5 veto, forces
-``verdict_recommendation = KILL``, except the SAFE-4/SAFE-8 holder pair stays
-advisory while no paid RPC provider is recorded (amendment 2026-10-25).
+id, a fail on any required id, or a hard top-5 veto, forces
+``verdict_recommendation = KILL``. The SAFE-4/SAFE-8 holder pair stays
+advisory while no paid RPC provider is recorded, and that carve-out is
+BLIND only (amendment 2026-10-25, required-fail rule 2026-11-13). A warn
+does not force KILL. An advisory fail does not force KILL. The score
+still subtracts 10 for a warn and 25 for a fail.
 Honeypot is a required quote-only Jupiter round trip at the intended
 position (amendment 2026-11-13). Transfer tax is required and reads the
 mint account (amendment 2026-11-13).
@@ -95,6 +98,10 @@ class ScoreReportOut(ToolOutput):
     ``advisory_blind_checks`` names the SAFE-4/SAFE-8 holder pair while its
     BLIND rows stay advisory (amendment 2026-10-25, no paid RPC recorded);
     each such row keeps status blind with its reason in ``checks``.
+    ``failed_required_checks`` names every required id whose status is
+    ``fail``. Those ids force KILL. ``hard_veto`` stays the top-5 share
+    veto and is not set by a required fail. There is no report-level
+    reason field; each check keeps its own ``reason``.
     """
 
     score: int = Field(ge=0, le=100)
@@ -103,6 +110,7 @@ class ScoreReportOut(ToolOutput):
     checks: list[CheckResult]
     blind_checks: list[str] = Field(default_factory=list)
     advisory_blind_checks: list[str] = Field(default_factory=list)
+    failed_required_checks: list[str] = Field(default_factory=list)
     evidence: list[Evidence] = Field(default_factory=list)
     thresholds_used: dict[str, float] = Field(default_factory=dict)
 
@@ -435,6 +443,31 @@ def _verdict(
     return "CLEAR"
 
 
+def _kill_facts(
+    rows: list[CheckResult], *, advisory_active: bool
+) -> tuple[list[str], list[str], list[str]]:
+    """Required blinds, advisory holder blinds, and required fails.
+
+    A fail counts only when its id is in ``REQUIRED_IDS``. A warn does not
+    count. Advisory ids are absent from ``REQUIRED_IDS``, so a fail there
+    does not count. The holder-pair carve-out applies only to BLIND.
+    """
+    blind_required: list[str] = []
+    advisory_blind: list[str] = []
+    failed_required: list[str] = []
+    for row in rows:
+        if row.status == "fail" and row.id in REQUIRED_IDS:
+            failed_required.append(row.id)
+            continue
+        if row.status != "blind" or row.id not in REQUIRED_IDS:
+            continue
+        if advisory_active and row.id in HOLDER_ADVISORY_PAIR:
+            advisory_blind.append(row.id)
+        else:
+            blind_required.append(row.id)
+    return blind_required, advisory_blind, failed_required
+
+
 async def _append_transfer_tax(
     inp: ScoreReportIn,
     runnable: list[CheckId],
@@ -511,22 +544,13 @@ async def run_score_report(
     score = _score(rows)
     top = readings.top
     top5 = Decimal(str((top or {}).get("top5_share", "0")))
+    # Top-5 share only. A required fail forces KILL without setting this flag.
     hard_veto = bool(top is not None and top5 > Decimal(str(active.top5_share_veto)))
     advisory_active = not paid_rpc_provider_recorded()
-    blind_required = [
-        r.id
-        for r in rows
-        if r.status == "blind"
-        and r.id in REQUIRED_IDS
-        and not (advisory_active and r.id in HOLDER_ADVISORY_PAIR)
-    ]
-    advisory_blind_checks = [
-        r.id
-        for r in rows
-        if r.status == "blind" and advisory_active and r.id in HOLDER_ADVISORY_PAIR
-    ]
-    honeypot_fail = any(row.id == "honeypot" and row.status == "fail" for row in rows)
-    verdict = _verdict(score, hard_veto or bool(blind_required) or honeypot_fail, active)
+    blind_required, advisory_blind_checks, failed_required = _kill_facts(
+        rows, advisory_active=advisory_active
+    )
+    verdict = _verdict(score, hard_veto or bool(blind_required) or bool(failed_required), active)
 
     out = {
         "score": int(score),
@@ -535,6 +559,7 @@ async def run_score_report(
         "checks": [r.model_dump() for r in rows],
         "blind_checks": [r.id for r in rows if r.status == "blind"],
         "advisory_blind_checks": advisory_blind_checks,
+        "failed_required_checks": failed_required,
         "evidence": [e.model_dump() for e in evidence],
         "thresholds_used": {k: float(getattr(active, k)) for k in _KNOWN_THRESHOLD_KEYS},
         "meta": meta_now(
