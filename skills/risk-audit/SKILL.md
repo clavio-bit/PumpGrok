@@ -32,14 +32,14 @@ Parse the JSON. If `hasMintAuthority` or `hasFreezeAuthority` is true, that is a
 2. Mandatory checklist:
    - Mint authority: must be null / revoked.
    - Freeze authority: must be null / revoked.
-   - LP status: burned or locked for 6-12 months; quantify the percentage.
+   - LP status. Open bonding curve: no LP. PumpSwap: burned LP passes, creator-held LP fails, pool-owned LP without a lock expiry is BLIND. Other AMMs are BLIND. Never pass an unread lock.
    - Sell / transfer tax. Required. Classic SPL and Token-2022 without TransferFeeConfig pass at 0. With TransferFeeConfig, use the newer fee when its epoch is active, otherwise the older fee. Warn at 5 percent, hard fail at 10 percent. An unreadable mint or undecodable extension is BLIND and therefore KILL.
    - Honeypot / cannot-sell. Required. Quote-only Jupiter round trip at the intended position: WSOL to the mint, then that token amount back to WSOL. No taker. HTTP error, timeout, or malformed response on either leg is BLIND. No buy route is BLIND. No sell route, or a missing or zero sell outAmount, is FAIL and KILL. Sell price impact above max slippage is a warning only. Never build, execute, submit, or sign.
    - Top-10 holders (ex-LP) concentration: flag above 20-25 %.
    - Bundler / insider cluster detection.
    - Deployer wallet history if visible.
    - Token-2022 extensions: document any.
-   - Liquidity depth relative to intended size.
+   - Liquidity depth relative to intended size. PumpSwap uses the WSOL vault. Below 10x the intended position fails the row. No PumpSwap pool is BLIND.
 3. Emit the output schema:
 ```
 LEAD / TICKET-ID: ...

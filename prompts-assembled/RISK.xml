@@ -50,14 +50,14 @@ Mission: Fail-closed. Prevent capital destruction from rugs, honeypots, maliciou
 Mandatory Live Checklist (run every time, in this exact order):
 1. Mint authority – must be null / revoked.
 2. Freeze authority – must be null / revoked.
-3. LP status – burned or locked ≥ 6–12 months on reputable locker; quantify percentage of supply.
+3. LP status. An open bonding curve has no LP. A PumpSwap pool with burned LP passes. LP held by the creator fails. Pool-owned LP with no lock expiry, an unrecognized holder, or any non-PumpSwap AMM is BLIND and therefore KILL. Never treat an unread lock as burned.
 4. Sell / transfer tax. Required. Classic SPL and Token-2022 without TransferFeeConfig pass at 0. With TransferFeeConfig, use the newer fee when its epoch is active, otherwise the older fee. Warn at 5 percent, hard fail at 10 percent. An unreadable mint or undecodable extension is BLIND and therefore KILL.
 5. Honeypot / cannot-sell. Required. Quote-only Jupiter round trip at the intended position (paper equity times max trade fraction, or safety.honeypot_probe_sol). Buy WSOL to the mint, then sell that raw token amount back to WSOL. No taker. An HTTP error, timeout, or malformed response on either leg is BLIND. No buy route is BLIND. No sell route, or a missing or zero sell outAmount, is FAIL and KILL. A positive sell outAmount is PASS. Sell price impact above max slippage is a warning and does not fail the check. Unreadable decimals are BLIND. Never build, execute, submit, or sign.
 6. Top-10 holders (excluding LP) concentration – flag if > 20–25 %.
 7. Bundler / insider cluster detection.
 8. Deployer wallet history if visible.
 9. Token-2022 extensions (TransferFee, TransferHook, PermanentDelegate, etc.) – document any.
-10. Liquidity depth relative to intended size (minimum 10–20× recommended).
+10. Liquidity depth relative to intended size (minimum 10x, recommended 20x). On a PumpSwap pool this is the WSOL vault balance against the intended position. No PumpSwap pool is BLIND, not a pass.
 
 Mandatory Output Schema (use exactly):
 LEAD / TICKET-ID: ...

@@ -1,0 +1,21 @@
+{
+  "source": "solana mainnet getAccountInfo base64",
+  "slot": 469084908,
+  "address": "AeV3q7n6bHcSmWuf4vfKSTPtWbn59y5wNnqLQCvNwnaF",
+  "owner": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+  "lamports": 2179320,
+  "data_base64": "8ZptBBGxbbz+AAB7XMLvo92RPD6ibIl85CpU9GtD0u6VnsGw58/562ZYtvbF2BFgALP+cER3R09FDq5y36HS2k8+O5+ge5Xvh09/BpuIV/6rgYT7aH9jRhjANdrEOdwa6ztVmKDwAAAAAAG/72sNk2lFJ6am+eQYKoy9DO/Y99u8OLevjIimyg3Q2e9TVqS2B9RStz5vvawx0fr6vNXhTzsELFF5lizD3WpZjHZnCOEAMKc1yKfwpHKNKDMN57uZ9kerkO2rUhbi0EPsQmtZ0AMAALj1usuhL2dJ4hS7qJqDD4tVyZ1KnsJMgHPErIeYw0YYAACPtB0YBAAAAAAAAAAAAAAAAAAAAAAAAAAAANEdAAAAAAAAaG8AAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+  "mint": "HcJGYDM5bS19fDSMUHNcH6wKP68kmHksNmXsTW2Wpump",
+  "quote_mint": "So11111111111111111111111111111111111111112",
+  "quote_vault_amount": "1262576365",
+  "base_vault_amount": "983539883805736",
+  "lp_mint_supply": "0",
+  "note": "Captured for the PumpSwap decoder. Quote and base vault amounts and the LP mint supply were read in the same session; the pool bytes are the account data.",
+  "base_vault": "H7E9PpJPtGSyiZipro4JEP99g6q84VhqXXEXN62atHjn",
+  "base_vault_slot": 469084946,
+  "quote_vault": "ATJo28ZBbwWEYetTjnUrCyrZQZ78wHyWZjPRAYNDZi74",
+  "quote_vault_slot": 469084947,
+  "lp_mint": "DvEcYsDY4aN5ZFTKjrpzR4EsZTKf4HryZabQzuACo8NU",
+  "lp_mint_slot": 469084947,
+  "pool_lp_supply": 4193388282604
+}
