@@ -1,0 +1,26 @@
+{
+  "task_id": "pumpswap-lp-liquidity",
+  "bot": "bot-05-rug",
+  "branch": "cursor/pumpswap-lp-liquidity-9830",
+  "purpose": "Score lp_status and liquidity_depth from a PumpSwap pool when the bonding curve is complete or unreadable. Other AMMs stay blind. Paper only. No live execution, live gate, signing, or wallet change.",
+  "commands": [
+    {"cmd": "uv run pytest -q -m 'not slow' --cov=pumpgrok --tb=line", "exit_code": 0, "output_tail": "exit 0 before the zero coin_creator allowance; coverage 91.13% (floor 89.9%)"},
+    {"cmd": "uv run ruff check . && uv run ruff format --check . && uv run mypy src/", "exit_code": 0, "output_tail": "ruff clean; 924 files formatted; mypy Success: no issues found in 237 source files"},
+    {"cmd": "uv run pytest -q tests/tools/onchain/test_pumpswap.py", "exit_code": 0, "output_tail": "9 passed after allowing a zero coin_creator and splitting the not-WSOL reason"},
+    {"cmd": "uv run python full score reports for TOGO, GATO, and BONK", "exit_code": 0, "output_tail": "TOGO CONDITIONAL lp burned pass liquidity 6.3x fail; GATO CLEAR lp burned pass liquidity 9108x pass; BONK KILL both rows blind because multiple PumpSwap WSOL pools"}
+  ],
+  "claims": [
+    {"claim": "the fast suite exited 0 at 91.13% coverage before the last decoder tweak", "evidence_command_index": 0},
+    {"claim": "ruff and mypy exited 0 after the last decoder tweak", "evidence_command_index": 1},
+    {"claim": "the PumpSwap fixture tests exited 0", "evidence_command_index": 2},
+    {"claim": "full live score reports for TOGO, GATO, and BONK were saved under artifacts/", "evidence_command_index": 3}
+  ],
+  "unverified": [
+    "The full pytest suite was not repeated after allowing a zero coin_creator and the multiple-pool reason. The PumpSwap tests were.",
+    "make audit, docker compose, and ci/gates/run_all.py were not run.",
+    "Bytes after offset 244 of the pool account are ASSUMED and unused.",
+    "The bonding-curve layout remains ASSUMED.",
+    "Live trading was not started. No live adapter, signer, wallet, or live-gate file was edited."
+  ],
+  "rollback_plan": "Revert this pull request. Graduated mints go back to the bonding-curve reader only. The PumpSwap decoder, fixture, and demo JSON leave with the revert. No ledger, live gate, or wallet state changes."
+}

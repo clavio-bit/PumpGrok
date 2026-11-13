@@ -208,7 +208,9 @@ async def _fetch(call: Awaitable[dict[str, Any]]) -> dict[str, Any] | None:
         return None
 
 
-async def _read_all(inp: ScoreReportIn, rpc: RpcClient, runnable: list[CheckId]) -> _Readings:
+async def _read_all(
+    inp: ScoreReportIn, rpc: RpcClient, runnable: list[CheckId], *, intended_lamports: int
+) -> _Readings:
     """Run only the readers the runnable checks need, in the fixed reader order."""
     needed: set[str] = set(runnable)
     auth = (
@@ -242,7 +244,7 @@ async def _read_all(inp: ScoreReportIn, rpc: RpcClient, runnable: list[CheckId])
                 LiquidityIn(
                     mint=inp.mint,
                     curve_account=inp.curve_account,
-                    order_size_lamports=inp.intended_size_lamports,
+                    order_size_lamports=intended_lamports,
                 ),
                 rpc,
             )
@@ -266,8 +268,10 @@ def _reader_row(
     """Score a check from its reader, or blind it; a live reading leaves evidence."""
     if reading is None:
         return _blind(check_id, weight, blind_reason)
+    raw_slot = reading.get("slot")
+    slot = raw_slot if isinstance(raw_slot, int) and not isinstance(raw_slot, bool) else None
     evidence.append(
-        Evidence(check=check_id, source=SOLANA_RPC_SOURCE, slot=None, fetched_at=utcnow(clock))
+        Evidence(check=check_id, source=SOLANA_RPC_SOURCE, slot=slot, fetched_at=utcnow(clock))
     )
     return evaluate(reading)
 
@@ -280,6 +284,7 @@ def _reader_rows(
     evidence: list[Evidence],
     *,
     clock: Clock,
+    intended_lamports: int,
 ) -> list[CheckResult]:
     """Rows for the data-backed checks, in the stable report order."""
     rows: list[CheckResult] = []
@@ -369,7 +374,7 @@ def _reader_rows(
             _reader_row(
                 "liquidity_depth",
                 readings.liq,
-                lambda liq: check_liquidity_depth(liq, inp.intended_size_lamports, active),
+                lambda liq: check_liquidity_depth(liq, intended_lamports, active),
                 clock,
                 weight=Decimal("0.15"),
                 blind_reason="liquidity unreadable",
@@ -490,8 +495,13 @@ async def run_score_report(
     runnable = [c for c in CHECK_IDS if c in wanted and c not in ADVISORY_IDS]
 
     evidence: list[Evidence] = []
-    readings = await _read_all(inp, rpc, runnable)
-    rows = _reader_rows(inp, runnable, readings, active, evidence, clock=rpc.clock)
+    intended = inp.intended_size_lamports
+    if intended <= 0 and honeypot is not None and honeypot.probe_lamports > 0:
+        intended = honeypot.probe_lamports
+    readings = await _read_all(inp, rpc, runnable, intended_lamports=intended)
+    rows = _reader_rows(
+        inp, runnable, readings, active, evidence, clock=rpc.clock, intended_lamports=intended
+    )
     await _append_transfer_tax(inp, runnable, rows, evidence, rpc=rpc, thresholds=active)
     await _append_honeypot(
         inp, runnable, readings, rows, evidence, honeypot=honeypot, clock=rpc.clock

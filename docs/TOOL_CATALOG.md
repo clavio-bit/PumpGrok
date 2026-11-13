@@ -74,7 +74,7 @@ with `reason`.
 
 | Attribute | Value |
 |---|---|
-| description | Pool depth: virtual SOL and token reserves, curve progress toward completion (85 SOL, `vendor/grokbot-pumpfun/src/monitor.py:30`), and price impact for a given order size |
+| description | Pool depth. An open bonding curve reports virtual SOL reserves. A complete curve, or a curve account that does not decode, reports the PumpSwap WSOL vault balance. No PumpSwap pool is unscored; other AMMs are not given a number (amendment 2026-11-13) |
 | input | `mint: Mint` (required); `order_size_lamports: Lamports >= 0` (default 0) |
 | output | `virtual_sol_reserves_lamports: Lamports`; `virtual_token_reserves_units: Units`; `liquidity_lamports: Lamports`; `curve_progress: Ratio`; `price_impact: Ratio`; `order_to_liquidity_ratio: Ratio`; `graduated: bool` |
 | side_effect | read |
@@ -159,14 +159,14 @@ tenacity retries. Failover rotates to the next URL on timeout, 5xx, 429, or
 
 | Attribute | Value |
 |---|---|
-| description | Liquidity status: for bonding-curve tokens the curve account and completion flag; for graduated tokens the Raydium LP mint, LP supply held by burn address or known lockers (checklist item 3, `agents/risk.md:42`) |
-| input | `mint: Mint` (required) |
-| output | `stage: enum[bonding_curve, graduated, unknown]`; `curve_complete: bool or null`; `lp_mint: Pubkey or null`; `lp_burned_pct: float or null`; `lp_locked_pct: float or null`; `locker: str or null`; `lock_expires_at: datetime or null`; `checked: list[str]` (which sub-checks ran) |
+| description | Liquidity status. An open bonding curve has no LP. A complete or unreadable curve is scored from the PumpSwap pool (`pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA`): burned LP passes, creator-held LP fails, and anything undetermined is blind. Other AMMs stay blind (amendment 2026-11-13) |
+| input | `mint: Mint` (required); `curve_account: Pubkey` (required) |
+| output | `stage: enum[bonding_curve, graduated, pumpswap, unknown]`; `curve_complete: bool or null`; `lp_mint: Pubkey or null`; `pool: Pubkey or null`; `base_vault: Pubkey or null`; `quote_vault: Pubkey or null`; `slot: int or null`; `detail: str or null`; `lp_mint_supply: int or null`; `pool_lp_supply: int or null`; `checked: list[str]` |
 | side_effect | read |
 | timeout_s | 20 |
 | retry | jitter(3, 0.5, 5) |
 | rate_limit_key | `solana_rpc` |
-| backend | JSON-RPC `getAccountInfo` on the bonding-curve PDA; `getTokenLargestAccounts` on `lp_mint`; GET `/coins/{mint}` field `complete` ([INFERENCE] field name from vendor `enrich_token`, `analyzer.py:146`) |
+| backend | JSON-RPC `getAccountInfo` on the curve account; for a PumpSwap pool, `getProgramAccounts` memcmp at base-mint offset 43, then the LP mint supply and largest accounts. The pool prefix is verified; bytes after offset 244 are ASSUMED and unused |
 | callers | rug |
 | source | new (no existing tool covers LP; `scout-pumpgrok-pack.md:125`) |
 

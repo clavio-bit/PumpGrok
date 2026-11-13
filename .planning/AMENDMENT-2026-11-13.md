@@ -98,3 +98,31 @@ A transfer-tax fail subtracts 25 points. It does not by itself force KILL the wa
 - It does not call build, execute, submit, or any signing endpoint.
 - It does not enable live trading, change `LiveGate`, or touch key custody.
 - It does not score non-PumpSwap liquidity. That is a separate change.
+
+## Update, same date: PumpSwap LP and quote-side liquidity
+
+Status: applied in this change. Paper only. Fail-closed. No live execution path, live gate, signer, or wallet code is modified.
+
+`lp_status` and `liquidity_depth` only read the ASSUMED bonding-curve layout, so a graduated mint was blind and therefore KILL. This update scores a PumpSwap pool and leaves every other AMM blind.
+
+### How a mint is found
+
+Program `pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA`. `getProgramAccounts` with `memcmp` at offset 43, the `base_mint` field. That filter returned one account for TOGO `HcJGYDM5bS19fDSMUHNcH6wKP68kmHksNmXsTW2Wpump`: pool `AeV3q7n6bHcSmWuf4vfKSTPtWbn59y5wNnqLQCvNwnaF`. The captured account is `tests/fixtures/rpc/pumpswap/togo_pool.json` with its slot. Offset 43 is the TOGO mint. Offset 75 is WSOL. The two vaults are token accounts of those mints. The LP mint authority is the pool.
+
+The discriminator is `sha256("account:Pool")[:8]`, which matches the account. The field order through `coin_creator` matches the `pool` struct in https://github.com/pump-fun/pump-public-docs/blob/main/idl/pump_amm.ts. Bytes from offset 244 to the end of the 301-byte account are not decoded. The IDL lists more fields there. They are not separated from padding on this account, so that tail is ASSUMED and unused. A short account or a bad discriminator does not decode, and the check is BLIND.
+
+An open bonding curve is unchanged and does not look up a pool. A complete curve, or a curve account that is missing or does not decode, does.
+
+### LP
+
+Burned means the LP mint supply is 0 while the pool still records `lp_supply`, or the whole mint supply sits at `1nc1nerator11111111111111111111111111111111` or the System Program. That passes, because a burn does not unlock, so it meets `lp_lock_min_days`. LP held by the pool creator or the coin creator fails. `coin_creator` may be the all-zero pubkey. That still decodes. LP that sits on the pool with no lock expiry, an unrecognized holder, a holder sample that does not cover the supply, or more than one WSOL pool is BLIND. No PumpSwap pool is BLIND with the reason that other AMMs are not scored. The row records the pool address, both vaults, the slot, and `solana_rpc`.
+
+### Liquidity
+
+Quote-side liquidity is the WSOL vault balance in lamports. It is compared with the intended position: `intended_size_lamports` when that is positive, otherwise the honeypot probe size from the same derivation as the position-sized probe. Below `liquidity_multiple_min` (10) fails. Below `liquidity_multiple_recommended` (20) warns. A vault that cannot be read is BLIND.
+
+### What this update does not do
+
+- It does not decode Raydium, Meteora, or any other AMM.
+- It does not treat the curve tail or the PumpSwap tail as verified.
+- It does not sign, build, or submit a transaction, and it does not change the live gate or wallet code.

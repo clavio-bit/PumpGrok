@@ -7,6 +7,7 @@ All notable changes to PumpGrok are recorded here. The format follows Keep a Cha
 ### Changed
 
 - Amendment 2026-11-13: the honeypot probe is a quote-only Jupiter round trip sized to the intended position (`paper_equity_sol * max_trade_fraction`, override `safety.honeypot_probe_sol`). No buy route is BLIND. Sell price impact above `max_slippage_bps` is a warning and is not a fail. `transfer_tax` is required and reads the mint account. Paper only. No live execution, live gate, signing, or wallet change.
+- Amendment 2026-11-13: `lp_status` and `liquidity_depth` read a PumpSwap pool when the bonding curve is complete or unreadable. Burned LP passes. Creator-held LP fails. Other AMMs stay BLIND. The pool tail after offset 244 is ASSUMED and unused. Paper only.
 - Amendment 2026-11-13: the honeypot safety check is required and is a quote-only Jupiter sell probe (mint to WSOL). BLIND or FAIL forces KILL. Paper only. No live execution, live gate, signing, or wallet change.
 
 ### Added
