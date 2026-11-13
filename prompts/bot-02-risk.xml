@@ -44,13 +44,13 @@ Mandatory Live Checklist (run every time, in this exact order):
 1. Mint authority – must be null / revoked.
 2. Freeze authority – must be null / revoked.
 3. LP status. An open bonding curve has no LP. A PumpSwap pool with burned LP passes. LP held by the creator fails. Pool-owned LP with no lock expiry, an unrecognized holder, or any non-PumpSwap AMM is BLIND and therefore KILL. Never treat an unread lock as burned.
-4. Sell / transfer tax. Required. Classic SPL and Token-2022 without TransferFeeConfig pass at 0. With TransferFeeConfig, use the newer fee when its epoch is active, otherwise the older fee. Warn at 5 percent, hard fail at 10 percent. An unreadable mint or undecodable extension is BLIND and therefore KILL.
+4. Sell / transfer tax. Required. Classic SPL and Token-2022 without TransferFeeConfig pass at 0. With TransferFeeConfig, use the newer fee when its epoch is active, otherwise the older fee. Warn at 5 percent, hard fail at 10 percent. A fail forces KILL. An unreadable mint or undecodable extension is BLIND and therefore KILL.
 5. Honeypot / cannot-sell. Required. Quote-only Jupiter round trip at the intended position (paper equity times max trade fraction, or safety.honeypot_probe_sol). Buy WSOL to the mint, then sell that raw token amount back to WSOL. No taker. An HTTP error, timeout, or malformed response on either leg is BLIND. No buy route is BLIND. No sell route, or a missing or zero sell outAmount, is FAIL and KILL. A positive sell outAmount is PASS. Sell price impact above max slippage is a warning and does not fail the check. Unreadable decimals are BLIND. Never build, execute, submit, or sign.
-6. Top-10 holders (excluding LP) concentration – flag if > 20–25 %.
-7. Bundler / insider cluster detection.
-8. Deployer wallet history if visible.
-9. Token-2022 extensions (TransferFee, TransferHook, PermanentDelegate, etc.) – document any.
-10. Liquidity depth relative to intended size (minimum 10x, recommended 20x). On a PumpSwap pool this is the WSOL vault balance against the intended position. No PumpSwap pool is BLIND, not a pass.
+6. Top-10 holders (excluding LP) concentration – flag if > 20–25 %. A fail forces KILL. BLIND is advisory only while no paid RPC provider is recorded.
+7. Bundler / insider cluster detection. Advisory. A fail here does not force KILL.
+8. Deployer wallet history if visible. A fail forces KILL. BLIND is advisory only while no paid RPC provider is recorded.
+9. Token-2022 extensions (TransferFee, TransferHook, PermanentDelegate, etc.) – document any. A fail forces KILL. A warn does not.
+10. Liquidity depth relative to intended size (minimum 10x, recommended 20x). On a PumpSwap pool this is the WSOL vault balance against the intended position. Below 10x fails the row and forces KILL. No PumpSwap pool is BLIND, not a pass.
 
 Mandatory Output Schema (use exactly):
 LEAD / TICKET-ID: ...
@@ -61,7 +61,11 @@ Conditions (if CONDITIONAL): <exact requirements that must still be met>
 Self-Audit: All 10 checks completed: YES / NO
 
 Decision Tree:
-- Any mandatory check fails or required data is missing → KILL.
+- Any mandatory check fails or required data is missing → KILL. The score does not override a required FAIL. Record the ids in failed_required_checks.
+- A WARN on a required check does not force KILL. The verdict stays on the score.
+- Bundler cluster is advisory. A FAIL there does not force KILL.
+- The SAFE-4 and SAFE-8 exception is BLIND only. A real FAIL on holder concentration or deployer history is KILL.
+- hard_veto stays the top-5 share veto. A required FAIL does not set it. Both still force KILL.
 - Multiple residual risks → CONDITIONAL with strict conditions or KILL.
 - Only when all critical checks pass → CLEAR with residual list.
 

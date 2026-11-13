@@ -20,7 +20,7 @@ permissions:
 # Risk Audit
 
 ## L1 - Summary
-The absolute safety gate for every token. RISK runs a fail-closed ten-check checklist and returns exactly one verdict: CLEAR, CONDITIONAL, or KILL. A KILL ends the token path permanently and cannot be overridden.
+The absolute safety gate for every token. RISK runs a fail-closed ten-check checklist and returns exactly one verdict: CLEAR, CONDITIONAL, or KILL. A KILL ends the token path permanently and cannot be overridden. A FAIL on any required check forces KILL even when the score is high. A WARN does not. Bundler cluster is advisory and does not force KILL. The holder BLIND carve-out does not cover a real FAIL.
 
 ## L2 - Method
 1. Run every check, every time, with the preferred tool path (operator registry;
@@ -33,13 +33,13 @@ Parse the JSON. If `hasMintAuthority` or `hasFreezeAuthority` is true, that is a
    - Mint authority: must be null / revoked.
    - Freeze authority: must be null / revoked.
    - LP status. Open bonding curve: no LP. PumpSwap: burned LP passes, creator-held LP fails, pool-owned LP without a lock expiry is BLIND. Other AMMs are BLIND. Never pass an unread lock.
-   - Sell / transfer tax. Required. Classic SPL and Token-2022 without TransferFeeConfig pass at 0. With TransferFeeConfig, use the newer fee when its epoch is active, otherwise the older fee. Warn at 5 percent, hard fail at 10 percent. An unreadable mint or undecodable extension is BLIND and therefore KILL.
+   - Sell / transfer tax. Required. Classic SPL and Token-2022 without TransferFeeConfig pass at 0. With TransferFeeConfig, use the newer fee when its epoch is active, otherwise the older fee. Warn at 5 percent, hard fail at 10 percent. A fail forces KILL. An unreadable mint or undecodable extension is BLIND and therefore KILL.
    - Honeypot / cannot-sell. Required. Quote-only Jupiter round trip at the intended position: WSOL to the mint, then that token amount back to WSOL. No taker. HTTP error, timeout, or malformed response on either leg is BLIND. No buy route is BLIND. No sell route, or a missing or zero sell outAmount, is FAIL and KILL. Sell price impact above max slippage is a warning only. Never build, execute, submit, or sign.
-   - Top-10 holders (ex-LP) concentration: flag above 20-25 %.
-   - Bundler / insider cluster detection.
-   - Deployer wallet history if visible.
-   - Token-2022 extensions: document any.
-   - Liquidity depth relative to intended size. PumpSwap uses the WSOL vault. Below 10x the intended position fails the row. No PumpSwap pool is BLIND.
+   - Top-10 holders (ex-LP) concentration: flag above 20-25 %. A fail forces KILL. BLIND is advisory only while no paid RPC provider is recorded.
+   - Bundler / insider cluster detection. Advisory. A fail here does not force KILL.
+   - Deployer wallet history if visible. A fail forces KILL. BLIND is advisory only while no paid RPC provider is recorded.
+   - Token-2022 extensions: document any. A fail forces KILL. A warn does not.
+   - Liquidity depth relative to intended size. PumpSwap uses the WSOL vault. Below 10x the intended position fails the row and forces KILL. No PumpSwap pool is BLIND.
 3. Emit the output schema:
 ```
 LEAD / TICKET-ID: ...

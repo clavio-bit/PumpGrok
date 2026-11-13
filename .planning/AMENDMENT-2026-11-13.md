@@ -126,3 +126,30 @@ Quote-side liquidity is the WSOL vault balance in lamports. It is compared with 
 - It does not decode Raydium, Meteora, or any other AMM.
 - It does not treat the curve tail or the PumpSwap tail as verified.
 - It does not sign, build, or submit a transaction, and it does not change the live gate or wallet code.
+
+## Update, same date: a required FAIL forces KILL
+
+Status: applied in this change. Paper only. Fail-closed. No live execution path, live gate, signer, or wallet code is modified.
+
+This update supersedes the sentence above that a transfer-tax fail does not by itself force KILL. A fail on honeypot already forced KILL. A fail on any other required check only subtracted its weight. TOGO `HcJGYDM5bS19fDSMUHNcH6wKP68kmHksNmXsTW2Wpump` had `liquidity_depth` FAIL (about 6.3x versus the 10x minimum) and `verdict_recommendation` CONDITIONAL at score 65.
+
+### Rule
+
+If any check whose id is in `REQUIRED_IDS` has status `fail`, `verdict_recommendation` is `KILL` regardless of score. The score computation is unchanged: warn subtracts 10, fail subtracts 25. The report records the forcing ids in `failed_required_checks`, in checklist order.
+
+- A `warn` on a required check does not force KILL. The verdict stays on the score ladder.
+- `bundler_cluster` is the only advisory id. A fail there does not force KILL.
+- The no-paid-RPC carve-out for `top10_concentration` and `deployer_history` applies only to BLIND. A real FAIL on either id forces KILL.
+- Existing BLIND handling is unchanged, including that carve-out.
+
+### hard_veto
+
+`hard_veto` stays the top-5 share veto: true only when a holder sample was read and `top5_share` is above `top5_share_veto` (default 0.80). A required fail does not set it. Both conditions force KILL, and they can be true together (a top-5 share above 0.80 is also a top-10 fail). Consumers that branch on `hard_veto` still see only the top-5 condition. The forcing check ids are `failed_required_checks`. The report has no verdict-level reason field. Each check keeps its own `reason`. `meta.reason` stays the freshness reason.
+
+### What this update does not do
+
+- It does not change the score penalties.
+- It does not treat a required warn as KILL.
+- It does not treat an advisory fail as KILL.
+- It does not extend the holder-pair carve-out to FAIL.
+- It does not sign, build, or submit a transaction, and it does not change the live gate or wallet code.

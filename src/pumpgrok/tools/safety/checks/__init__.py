@@ -2,8 +2,10 @@
 
 Every check returns a reasoned row; a check without data returns
 ``status="blind"`` instead of raising. ``REQUIRED_IDS`` force a KILL
-verdict when blind. ``ADVISORY_IDS`` (bundler cluster) stays blind by
-construction and never forces the verdict on its own.
+verdict when blind or when status is ``fail``. A ``warn`` does not.
+``ADVISORY_IDS`` (bundler cluster) stays blind by construction and never
+forces the verdict on its own, including on fail. The SAFE-4/SAFE-8
+carve-out applies only to BLIND (amendment 2026-11-13).
 Honeypot is required: a quote-only Jupiter round trip at the intended
 position (amendment 2026-11-13). Transfer tax is required: it reads the
 mint account (amendment 2026-11-13).
