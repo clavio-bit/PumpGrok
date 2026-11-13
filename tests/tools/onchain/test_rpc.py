@@ -7,8 +7,10 @@ elapsed time.
 
 from __future__ import annotations
 
+import logging
 import random
 import sys
+import traceback
 import types
 from pathlib import Path
 
@@ -32,6 +34,7 @@ def _rpc(
     *,
     retry: RetryPolicy | None = TINY,
     api_key: SecretStr | None = None,
+    api_key_hosts: list[str] | None = None,
     seed: int = 7,
 ) -> RpcClient:
     transport = httpx.MockTransport(handler)  # type: ignore[arg-type]
@@ -43,6 +46,7 @@ def _rpc(
         rng=random.Random(seed),
         retry=retry,
         api_key=api_key,
+        api_key_hosts=api_key_hosts,
     )
 
 
@@ -169,6 +173,69 @@ async def test_no_key_sends_no_auth_header() -> None:
     rpc = _rpc(handler)
     assert await rpc.call("getFoo", []) == "ok"
     assert seen["has_header"] is False
+
+
+HELIUS = "https://mainnet.helius-rpc.com"
+PUBLIC = "https://api.mainnet-beta.solana.com"
+PAID = "paid-key-should-not-leak"
+
+
+async def test_empty_host_list_sends_the_key_only_to_the_first_endpoint() -> None:
+    seen: dict[str, str | None] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen[request.url.host] = request.headers.get("x-api-key")
+        if request.url.host == "mainnet.helius-rpc.com":
+            return httpx.Response(200, json={"jsonrpc": "2.0", "id": 1, "error": {"code": -32005}})
+        return httpx.Response(200, json={"jsonrpc": "2.0", "id": 1, "result": "ok"})
+
+    rpc = _rpc(handler, endpoints=(HELIUS, PUBLIC), api_key=SecretStr(PAID))
+    assert await rpc.call("getFoo", []) == "ok"
+    assert seen["mainnet.helius-rpc.com"] == PAID
+    assert seen["api.mainnet-beta.solana.com"] is None
+    assert PAID not in PUBLIC
+
+
+async def test_allowlist_keeps_the_key_off_the_public_fallback() -> None:
+    seen: dict[str, str | None] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen[request.url.host] = request.headers.get("x-api-key")
+        if request.url.host == "api.mainnet-beta.solana.com":
+            return httpx.Response(200, json={"jsonrpc": "2.0", "id": 1, "error": {"code": -32005}})
+        return httpx.Response(200, json={"jsonrpc": "2.0", "id": 1, "result": "ok"})
+
+    rpc = _rpc(
+        handler,
+        endpoints=(PUBLIC, HELIUS),
+        api_key=SecretStr(PAID),
+        api_key_hosts=["Mainnet.Helius-RPC.com"],
+    )
+    assert await rpc.call("getFoo", []) == "ok"
+    assert seen["api.mainnet-beta.solana.com"] is None
+    assert seen["mainnet.helius-rpc.com"] == PAID
+
+
+async def test_key_and_urls_stay_out_of_errors_and_logs(caplog: pytest.LogCaptureFixture) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(500, json={"error": "down"})
+
+    rpc = _rpc(
+        handler,
+        endpoints=(HELIUS, PUBLIC),
+        api_key=SecretStr(PAID),
+        api_key_hosts=["mainnet.helius-rpc.com"],
+        retry=RetryPolicy(attempts=1, base_s=0.01, max_s=0.02),
+    )
+    with caplog.at_level(logging.DEBUG), pytest.raises(RpcError) as excinfo:
+        await rpc.call("getHealth", [])
+    rendered = "".join(traceback.format_exception(excinfo.value))
+    blob = rendered + caplog.text
+    assert PAID not in blob
+    assert "helius" not in blob.lower()
+    assert "mainnet-beta" not in blob
+    assert "x-api-key" not in blob.lower()
+    assert excinfo.value.__cause__ is None
 
 
 def test_seeded_wait_uses_policy_bounds() -> None:

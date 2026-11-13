@@ -56,6 +56,7 @@ def test_operator_registry_forwards_rpc_api_key(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("PUMPGROK_RPC__API_KEY", "paid-key-123")
+    monkeypatch.setenv("PUMPGROK_RPC__API_KEY_HOSTS", '["mainnet.helius-rpc.com"]')
     settings = load_settings()
     seen: dict[str, Any] = {}
     real_rpc = tools_mod.RpcClient
@@ -69,6 +70,7 @@ def test_operator_registry_forwards_rpc_api_key(
     _build(tmp_path, settings)
     assert isinstance(seen["api_key"], SecretStr)
     assert seen["api_key"].get_secret_value() == "paid-key-123"
+    assert seen["api_key_hosts"] == ["mainnet.helius-rpc.com"]
 
 
 def test_operator_registry_forwards_safety_thresholds(

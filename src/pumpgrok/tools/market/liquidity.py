@@ -156,6 +156,8 @@ async def _pumpswap_payload(inp: LiquidityIn, rpc: RpcClient) -> dict[str, Any]:
         f"pool={pool.address} base_vault={pool.base_vault} "
         f"quote_vault={pool.quote_vault} slot={pool.slot} source={SOLANA_RPC_SOURCE}"
     )
+    if lookup.reason:
+        detail = f"{detail} {lookup.reason}"
     return {
         "virtual_sol_reserves_lamports": quote,
         "virtual_token_reserves_units": base,  # pragma: allowlist secret

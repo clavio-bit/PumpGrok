@@ -1,0 +1,167 @@
+{
+  "meta": {
+    "source": "solana_rpc",
+    "fetched_at": "2026-11-13 22:54:01.234543+00:00",
+    "freshness_s": 0.0,
+    "correlation_id": "none",
+    "stale": false,
+    "reason": null
+  },
+  "score": 65,
+  "verdict_recommendation": "CONDITIONAL",
+  "hard_veto": false,
+  "checks": [
+    {
+      "id": "mint_authority",
+      "status": "pass",
+      "value": false,
+      "threshold": "revoked",
+      "weight": "0.15",
+      "reason": "mint authority revoked; supply is fixed"
+    },
+    {
+      "id": "freeze_authority",
+      "status": "pass",
+      "value": false,
+      "threshold": "revoked",
+      "weight": "0.15",
+      "reason": "freeze authority revoked; accounts cannot be frozen"
+    },
+    {
+      "id": "lp_status",
+      "status": "pass",
+      "value": "burned",
+      "threshold": "burned or locked",
+      "weight": "0.15",
+      "reason": "LP mint supply is 0 and the pool records lp_supply=4193388282604; burned, so it meets lp_lock_min_days. pool=AeV3q7n6bHcSmWuf4vfKSTPtWbn59y5wNnqLQCvNwnaF base_vault=H7E9PpJPtGSyiZipro4JEP99g6q84VhqXXEXN62atHjn quote_vault=ATJo28ZBbwWEYetTjnUrCyrZQZ78wHyWZjPRAYNDZi74 slot=469100654 source=solana_rpc lookup=canonical_pda"
+    },
+    {
+      "id": "transfer_tax",
+      "status": "pass",
+      "value": 0.0,
+      "threshold": "warn>=5 fail>=10",
+      "weight": "0.10",
+      "reason": "token-2022 mint has no TransferFeeConfig; effective bps 0"
+    },
+    {
+      "id": "honeypot",
+      "status": "pass",
+      "value": "190676927",
+      "threshold": "sell outAmount>0",
+      "weight": "0.15",
+      "reason": "jupiter sell route outAmount=190676927 buyOut=10191100968429 sellOut=190676927 buyIn=200000000 priceImpact=-3.31699538414620600 retained=0.95338464 buyRoutes=Pump.fun Amm sellRoutes=Pump.fun Amm warning: position-size sell impact exceeds max slippage"
+    },
+    {
+      "id": "top10_concentration",
+      "status": "blind",
+      "value": null,
+      "threshold": null,
+      "weight": "0.15",
+      "reason": "holder sample unreadable"
+    },
+    {
+      "id": "deployer_history",
+      "status": "blind",
+      "value": null,
+      "threshold": null,
+      "weight": "0.10",
+      "reason": "creator not supplied; window unscanned"
+    },
+    {
+      "id": "token2022_extensions",
+      "status": "warn",
+      "value": 2.0,
+      "threshold": "none",
+      "weight": "0.05",
+      "reason": "2 token-2022 extensions present; review transfer hooks"
+    },
+    {
+      "id": "liquidity_depth",
+      "status": "fail",
+      "value": 6.312881825,
+      "threshold": 10.0,
+      "weight": "0.15",
+      "reason": "liquidity is 6.3x the intended size; pool=AeV3q7n6bHcSmWuf4vfKSTPtWbn59y5wNnqLQCvNwnaF base_vault=H7E9PpJPtGSyiZipro4JEP99g6q84VhqXXEXN62atHjn quote_vault=ATJo28ZBbwWEYetTjnUrCyrZQZ78wHyWZjPRAYNDZi74 slot=469100655 source=solana_rpc lookup=canonical_pda"
+    },
+    {
+      "id": "bundler_cluster",
+      "status": "blind",
+      "value": null,
+      "threshold": null,
+      "weight": "0",
+      "reason": "no Phase-3 data source; advisory blind"
+    }
+  ],
+  "blind_checks": [
+    "top10_concentration",
+    "deployer_history",
+    "bundler_cluster"
+  ],
+  "advisory_blind_checks": [
+    "top10_concentration",
+    "deployer_history"
+  ],
+  "evidence": [
+    {
+      "check": "mint_authority",
+      "source": "solana_rpc",
+      "slot": null,
+      "fetched_at": "2026-11-13 22:54:00.971702+00:00"
+    },
+    {
+      "check": "freeze_authority",
+      "source": "solana_rpc",
+      "slot": null,
+      "fetched_at": "2026-11-13 22:54:00.971729+00:00"
+    },
+    {
+      "check": "lp_status",
+      "source": "solana_rpc",
+      "slot": 469100654,
+      "fetched_at": "2026-11-13 22:54:00.971735+00:00"
+    },
+    {
+      "check": "token2022_extensions",
+      "source": "solana_rpc",
+      "slot": null,
+      "fetched_at": "2026-11-13 22:54:00.971753+00:00"
+    },
+    {
+      "check": "liquidity_depth",
+      "source": "solana_rpc",
+      "slot": 469100655,
+      "fetched_at": "2026-11-13 22:54:00.971761+00:00"
+    },
+    {
+      "check": "transfer_tax",
+      "source": "solana_rpc",
+      "slot": 469100655,
+      "fetched_at": "2026-11-13 22:54:00.988399+00:00"
+    },
+    {
+      "check": "honeypot",
+      "source": "https://api.jup.ag/swap/v2/order",
+      "slot": null,
+      "fetched_at": "2026-11-13 22:54:01.234313+00:00"
+    },
+    {
+      "check": "bundler_cluster",
+      "source": "unwired",
+      "slot": null,
+      "fetched_at": "2026-11-13 22:54:01.234330+00:00"
+    }
+  ],
+  "thresholds_used": {
+    "transfer_tax_hard_fail_pct": 10.0,
+    "transfer_tax_warn_pct": 5.0,
+    "top10_concentration_warn_pct": 20.0,
+    "top10_concentration_fail_pct": 25.0,
+    "liquidity_multiple_min": 10.0,
+    "liquidity_multiple_recommended": 20.0,
+    "lp_lock_min_days": 180.0,
+    "creator_share_veto": 0.25,
+    "top5_share_veto": 0.8,
+    "kill_below_score": 40.0,
+    "conditional_below_score": 70.0
+  }
+}

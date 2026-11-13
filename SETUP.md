@@ -138,7 +138,20 @@ uv run pumpgrok tools onchain.authorities --help
 ```
 
 No API key is required. The reads work on public endpoints.
-A private Solana RPC (Helius, QuickNode, etc.) dramatically improves reliability and can be set with `PUMPGROK_RPC__ENDPOINTS`.
+
+### Dedicated RPC
+
+A dedicated Helius endpoint is more reliable than the public Solana RPC. The URL stays keyless. The key travels only in the `x-api-key` header, from `PUMPGROK_RPC__API_KEY`. That header was verified on Helius on 2026-11-13: HTTP 200 with the header, 401 without. A URL that contains a key is refused at startup.
+
+Put the Helius URL first. List a public URL after it only as a fallback. Name the host that may see the key:
+
+```bash
+export PUMPGROK_RPC__ENDPOINTS='["https://mainnet.helius-rpc.com/","https://api.mainnet-beta.solana.com"]'
+export PUMPGROK_RPC__API_KEY
+export PUMPGROK_RPC__API_KEY_HOSTS='["mainnet.helius-rpc.com"]'
+```
+
+`PUMPGROK_RPC__API_KEY` is the header value. Do not write it into a URL, a file, or a log. `rpc.api_key_hosts` is the allow list. When the list is empty and a key is set, only the first endpoint receives the header. No other host is sent the key, so the public fallback cannot see it. Set the allow list to `mainnet.helius-rpc.com` so a later reorder cannot leak the key.
 
 ---
 

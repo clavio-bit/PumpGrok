@@ -25,6 +25,21 @@ _PUBLIC_KEY_BYTES = 32
 _PUBLIC_KEY_MAX_CHARS = 44
 
 
+def _is_hostname(name: str) -> bool:
+    """True for a DNS hostname. Schemes, paths, userinfo and ports are refused."""
+    if not name or len(name) > 253:
+        return False
+    if any(char in name for char in "/:@\\?# \t"):
+        return False
+    labels = name.split(".")
+    for label in labels:
+        if not label or len(label) > 63 or label.startswith("-") or label.endswith("-"):
+            return False
+        if not all(char.isalnum() or char == "-" for char in label):
+            return False
+    return True
+
+
 def _require_scheme(url: str, schemes: tuple[str, ...]) -> str:
     """Refuse a URL whose scheme is not one of ``schemes`` (TLS only; value never echoed)."""
     if urlsplit(url).scheme.lower() not in schemes:
@@ -58,12 +73,16 @@ class RpcSettings(BaseModel):
 
     Paid-provider keys travel in ``api_key`` and are sent as a header;
     key-bearing endpoint values are refused at startup (T-02-01).
+    ``api_key_hosts`` names the hosts that may receive that header. An empty
+    list means only the first endpoint receives it. No other host is sent
+    the key.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     endpoints: list[str] = Field(default_factory=lambda: ["https://api.mainnet-beta.solana.com"])
     api_key: SecretStr = SecretStr("")
+    api_key_hosts: list[str] = Field(default_factory=list)
 
     @field_validator("endpoints")
     @classmethod
@@ -71,6 +90,18 @@ class RpcSettings(BaseModel):
         for endpoint in v:
             _require_scheme(endpoint, ("https", "wss"))
         return v
+
+    @field_validator("api_key_hosts")
+    @classmethod
+    def _api_key_hosts(cls, hosts: list[str]) -> list[str]:
+        """Hostnames only. The submitted text is never copied into the error."""
+        cleaned: list[str] = []
+        for host in hosts:
+            name = host.strip().lower().rstrip(".")
+            if not _is_hostname(name):
+                raise ValueError("rpc.api_key_hosts entry must be a hostname")
+            cleaned.append(name)
+        return cleaned
 
 
 class GrokSettings(BaseModel):

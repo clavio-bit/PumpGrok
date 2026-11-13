@@ -9,8 +9,9 @@ https://github.com/pump-fun/pump-public-docs/blob/main/idl/pump_amm.ts
 
 That prefix was checked against mainnet pool
 ``AeV3q7n6bHcSmWuf4vfKSTPtWbn59y5wNnqLQCvNwnaF`` captured in
-``tests/fixtures/rpc/pumpswap/togo_pool.json``. ``getProgramAccounts`` with
-``memcmp`` at offset 43 on the TOGO mint returned this account.
+``tests/fixtures/rpc/pumpswap/togo_pool.json``. The canonical migration PDA
+(``pumpswap_pda``) reproduces this address. The capture itself used
+``getProgramAccounts`` with ``memcmp`` at offset 43 on the TOGO mint.
 Offset 43 is that mint, offset 75 is WSOL, the two vaults are token
 accounts of those mints, and the LP mint authority is the pool.
 

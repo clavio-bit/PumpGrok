@@ -170,14 +170,24 @@ def _handler(
     lp_supply: str = "0",
     holders: list[dict[str, object]] | None = None,
     holder_owner: str | None = None,
+    canonical: bool = True,
 ) -> httpx.MockTransport:
     items = [_program_item()] if program_items is None else program_items
 
     def handler(request: httpx.Request) -> httpx.Response:
         body = json.loads(request.content.decode("utf-8"))
         method, params = body["method"], body["params"]
+        if method == "getProgramAccountsV2":
+            return httpx.Response(
+                200,
+                json={"jsonrpc": "2.0", "id": 1, "error": {"code": -32601, "message": "method"}},
+            )
         if method == "getProgramAccounts":
             return _program_response(params, items)
+        if method == "getAccountInfo" and not canonical and params[0] == POOL:
+            encoding = params[1].get("encoding") if isinstance(params[1], dict) else None
+            if encoding == "base64":
+                return _rpc_ok({"context": {"slot": 1}, "value": None})
         if method == "getAccountInfo":
             return _account_response(
                 params, pool_data=pool_data, lp_supply=lp_supply, holder_owner=holder_owner
@@ -192,7 +202,7 @@ def _handler(
 
 
 async def test_pool_not_found_is_blind() -> None:
-    rpc = _rpc(_handler(program_items=[]))
+    rpc = _rpc(_handler(program_items=[], canonical=False))
     lp = await run_lp_status(LpStatusIn(mint=MINT, curve_account=CURVE), rpc)
     assert lp["stage"] == "unknown"
     assert "other AMMs are not scored" in lp["detail"]
@@ -203,7 +213,7 @@ async def test_pool_not_found_is_blind() -> None:
 
 async def test_decode_failure_is_blind() -> None:
     short = _program_item("AAAA")
-    rpc = _rpc(_handler(program_items=[short]))
+    rpc = _rpc(_handler(program_items=[short], canonical=False))
     lp = await run_lp_status(LpStatusIn(mint=MINT, curve_account=CURVE), rpc)
     row = check_lp_status(lp)
     assert row.status == "blind"
@@ -230,6 +240,7 @@ async def test_burned_lp_from_the_real_pool_passes() -> None:
     row = check_lp_status(lp)
     assert row.status == "pass"
     assert row.value == "burned"
+    assert "lookup=canonical_pda" in row.reason
     assert f"pool={POOL}" in row.reason
     assert f"slot={FIXTURE['slot']}" in row.reason
     assert "source=solana_rpc" in row.reason
