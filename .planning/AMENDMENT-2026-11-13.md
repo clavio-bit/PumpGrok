@@ -153,3 +153,32 @@ If any check whose id is in `REQUIRED_IDS` has status `fail`, `verdict_recommend
 - It does not treat an advisory fail as KILL.
 - It does not extend the holder-pair carve-out to FAIL.
 - It does not sign, build, or submit a transaction, and it does not change the live gate or wallet code.
+
+## Update, same date: canonical pool PDA and host-scoped RPC key
+
+Status: applied in this change. Paper only. Fail-closed. No live execution path, live gate, signer, or wallet code is modified.
+
+Helius rejects `getProgramAccounts` on the PumpSwap program with JSON-RPC -32600 (`Too many accounts requested`). `lp_status` and `liquidity_depth` were then BLIND for every graduated mint on that RPC.
+
+### Pool lookup
+
+The primary lookup is the canonical migration pool PDA, then one `getAccountInfo`. Seeds were checked against https://github.com/pump-fun/pump-public-docs `idl/pump_amm.ts` (`createPool` seeds `["pool", index, creator, baseMint, quoteMint]`) and `idl/pump.json` (`migrate` / `migrate_v2`). The pool-authority PDA is `["pool-authority", mint]` on pump program `6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P`. Migration encodes the index as the constant bytes `[0, 0]` (u16 little-endian 0). The creator is that pool-authority PDA. The quote mint on `migrate` is WSOL. The AMM program is `pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA`.
+
+Those seeds reproduce both mainnet pools, offline:
+
+- TOGO `HcJGYDM5bS19fDSMUHNcH6wKP68kmHksNmXsTW2Wpump` -> `AeV3q7n6bHcSmWuf4vfKSTPtWbn59y5wNnqLQCvNwnaF`
+- GATO `HsprHxBRgiVaQdRf3TnKNuZZtaX9JUSPgMFdAkk6pump` -> `5E3dXLXGwmTDCokA51WYYaKttjFZBwqCoyUHBUi5gt2m`
+
+The derived account must be owned by the AMM program, carry the Pool discriminator, and match the mint and WSOL. A hit is the migration pool. A missing or invalid account falls back to `getProgramAccountsV2` with pagination and the same memcmp at offset 43, when that method is offered. Otherwise the fallback is `getProgramAccounts`. More than one WSOL pool on a fallback is BLIND. Nothing found is BLIND. A scan error, including -32600 on the legacy method, is BLIND and does not crash. The check reason records `lookup=canonical_pda`, `lookup=getProgramAccountsV2`, or `lookup=getProgramAccounts`.
+
+The pool tail after offset 244 stays ASSUMED and unused. The seeds themselves are verified, not ASSUMED.
+
+### RPC key scope
+
+`x-api-key` was verified on Helius on 2026-11-13: HTTP 200 with the header, 401 without. `rpc.api_key_hosts` (`PUMPGROK_RPC__API_KEY_HOSTS`) lists the hosts that may receive it. When the list is empty and a key is set, only the first endpoint receives the header. No other host is sent the key. Endpoint URLs stay keyless. Errors and logs do not carry the URL or the header value.
+
+### What this update does not do
+
+- It does not change live execution, the live gate, signing, or wallet code.
+- It does not put the key in a URL.
+- It does not score a pool it did not validate.

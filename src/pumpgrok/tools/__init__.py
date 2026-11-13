@@ -346,6 +346,7 @@ def build_operator_registry(
         active_clock,
         make_rng(active_seed),
         api_key=settings.rpc.api_key,
+        api_key_hosts=settings.rpc.api_key_hosts,
     )
     store = LedgerStore(ledger_path if ledger_path is not None else data_dir / "ledger.sqlite")
     live = settings.effective_mode == "live"

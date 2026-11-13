@@ -1,0 +1,14 @@
+{
+  "togo": {
+    "mint": "HcJGYDM5bS19fDSMUHNcH6wKP68kmHksNmXsTW2Wpump",
+    "pool": "AeV3q7n6bHcSmWuf4vfKSTPtWbn59y5wNnqLQCvNwnaF",
+    "curve": "FLSUV3wfv7NLwKxtKHCY2bC86VLcf8cK2wooPR6Azjqd",
+    "matches_published": true
+  },
+  "gato": {
+    "mint": "HsprHxBRgiVaQdRf3TnKNuZZtaX9JUSPgMFdAkk6pump",
+    "pool": "5E3dXLXGwmTDCokA51WYYaKttjFZBwqCoyUHBUi5gt2m",
+    "curve": "6cuBZ4JurfWF1aEMfJkSbGPh33N6d1zQLfDsE9hE8pR2",
+    "matches_published": true
+  }
+}

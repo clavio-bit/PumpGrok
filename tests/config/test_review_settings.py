@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
 import pytest
 
+from pumpgrok.cli import main
 from pumpgrok.config import settings as settings_module
 from pumpgrok.config.settings import ConfigError, load_settings
 from pumpgrok.tools.notify.telegram import TELEGRAM_ENV_VAR
@@ -106,3 +108,25 @@ def test_toml_non_secret_rpc_endpoints_still_accepted(
     config.write_text('[rpc]\nendpoints = ["https://rpc.example.org"]\n', encoding="utf-8")
     monkeypatch.setenv("PUMPGROK_CONFIG", str(config))
     assert load_settings().rpc.endpoints == ["https://rpc.example.org"]
+
+
+def test_api_key_hosts_load_from_env(clean_env: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PUMPGROK_RPC__API_KEY_HOSTS", '["Mainnet.Helius-RPC.com"]')
+    assert load_settings().rpc.api_key_hosts == ["mainnet.helius-rpc.com"]
+
+
+def test_api_key_hosts_rejects_a_url_without_echoing_it(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    planted = "https://user:PLANTED-HOST-SECRET@evil.example/rpc"
+    monkeypatch.setenv("PUMPGROK_RPC__API_KEY_HOSTS", json.dumps([planted]))
+    with pytest.raises(ConfigError) as excinfo:
+        load_settings()
+    text = str(excinfo.value)
+    assert "rpc.api_key_hosts" in text
+    assert "PLANTED-HOST-SECRET" not in text
+    assert "evil.example" not in text
+    assert main(["doctor"]) == 1
+    err = capsys.readouterr().err
+    assert "PLANTED-HOST-SECRET" not in err
+    assert "evil.example" not in err

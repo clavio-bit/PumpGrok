@@ -3,9 +3,12 @@
 Tenacity ``AsyncRetrying`` drives retries with ``sleep=clock.sleep`` and a
 seeded wait, so replays reproduce every delay from the fixture alone (R27).
 Endpoints are keyless URLs only; a paid-provider key travels separately in
-``api_key`` and is sent as an ``x-api-key`` header. The header name is
-provisional pending provider confirmation (Open Q7); keyless public RPC is
-all Phase 2 tests use.
+``api_key`` and is sent as an ``x-api-key`` header. That header name was
+verified on Helius on 2026-11-13 (HTTP 200 with the header, 401 without).
+The key is attached only for endpoints whose host is in ``api_key_hosts``.
+When that list is empty and a key is set, only the first endpoint receives
+the header. No other host is sent the key, so a public fallback cannot see
+it. Keyless public RPC is what the offline tests use.
 
 Nothing raised or logged here carries an endpoint URL, a header value, or
 ``str(exc)`` from httpx: errors name the method and the endpoint count only
@@ -14,9 +17,11 @@ Nothing raised or logged here carries an endpoint URL, a header value, or
 
 from __future__ import annotations
 
+import logging
 import random
 from collections.abc import Sequence
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
 from pydantic import SecretStr
@@ -35,6 +40,39 @@ from pumpgrok.replay.rng import make_rng
 
 class RpcError(RuntimeError):
     """Redacted RPC failure: method plus endpoint count, never URLs or keys."""
+
+
+# Hosts this process has used as RPC endpoints. Their httpx access lines are
+# dropped so a failover URL never lands in a log. Other httpx clients stay.
+_RPC_LOG_HOSTS: set[str] = set()
+
+
+class _DropRpcAccessLog(logging.Filter):
+    """Drop httpx access lines whose URL host is an RPC endpoint."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        message = record.msg
+        if not isinstance(message, str) or not message.startswith("HTTP Request"):
+            return True
+        args = record.args
+        if not isinstance(args, tuple):
+            return True
+        for arg in args:
+            host = urlsplit(str(arg)).hostname
+            if host is not None and host.lower() in _RPC_LOG_HOSTS:
+                return False
+        return True
+
+
+def _keep_urls_out_of_httpx_logs(endpoints: Sequence[str]) -> None:
+    for endpoint in endpoints:
+        host = urlsplit(endpoint).hostname
+        if host:
+            _RPC_LOG_HOSTS.add(host.lower())
+    logger = logging.getLogger("httpx")
+    if any(isinstance(item, _DropRpcAccessLog) for item in logger.filters):
+        return
+    logger.addFilter(_DropRpcAccessLog())
 
 
 class _Failover(Exception):
@@ -93,12 +131,14 @@ class RpcClient:
         rng: random.Random | None = None,
         *,
         api_key: SecretStr | None = None,
+        api_key_hosts: Sequence[str] | None = None,
         timeout_seconds: float = 15.0,
         max_attempts_per_endpoint: int = 3,
         retry: RetryPolicy | None = None,
     ) -> None:
         if not endpoints:
             raise RpcError("rpc misconfigured: no endpoints")
+        _keep_urls_out_of_httpx_logs(endpoints)
         self._endpoints = list(endpoints)
         self._client = client
         self._clock = clock
@@ -106,6 +146,9 @@ class RpcClient:
         # from the composition-root seed; the default below is test-only.
         self._rng = rng if rng is not None else make_rng()
         self._api_key = api_key if api_key is not None else SecretStr("")
+        self._api_key_hosts = frozenset(
+            host.strip().lower() for host in (api_key_hosts or []) if host.strip()
+        )
         self._timeout_seconds = timeout_seconds
         if retry is None:
             retry = RetryPolicy(
@@ -124,17 +167,25 @@ class RpcClient:
     def endpoint_count(self) -> int:
         return len(self._endpoints)
 
-    def _headers(self) -> dict[str, str]:
-        key = self._api_key.get_secret_value()
-        if key:
-            return {"x-api-key": key}
-        return {}
+    def _sends_key(self, endpoint: str, index: int) -> bool:
+        """True only for an allowlisted host, or for endpoint 0 when no hosts are set."""
+        if not self._api_key.get_secret_value():
+            return False
+        if self._api_key_hosts:
+            host = urlsplit(endpoint).hostname
+            return host is not None and host.lower() in self._api_key_hosts
+        return index == 0
 
-    async def _post_once(self, endpoint: str, method: str, params: list[Any]) -> Any:
+    def _headers(self, endpoint: str, index: int) -> dict[str, str]:
+        if not self._sends_key(endpoint, index):
+            return {}
+        return {"x-api-key": self._api_key.get_secret_value()}
+
+    async def _post_once(self, endpoint: str, method: str, params: list[Any], index: int) -> Any:
         resp = await self._client.post(
             endpoint,
             json={"jsonrpc": "2.0", "id": 1, "method": method, "params": params},
-            headers=self._headers(),
+            headers=self._headers(endpoint, index),
             timeout=self._timeout_seconds,
         )
         resp.raise_for_status()
@@ -158,7 +209,7 @@ class RpcClient:
         Failures raise :class:`RpcError` with no URL, header, or exception text.
         """
         bad_bodies = 0
-        for endpoint in self._endpoints:
+        for index, endpoint in enumerate(self._endpoints):
             try:
                 async for attempt in AsyncRetrying(
                     sleep=self._clock.sleep,
@@ -169,7 +220,7 @@ class RpcClient:
                 ):
                     with attempt:
                         try:
-                            return await self._post_once(endpoint, method, params)
+                            return await self._post_once(endpoint, method, params, index)
                         except RpcError as exc:
                             raise _Failover from exc
             except _Failover:

@@ -166,7 +166,7 @@ tenacity retries. Failover rotates to the next URL on timeout, 5xx, 429, or
 | timeout_s | 20 |
 | retry | jitter(3, 0.5, 5) |
 | rate_limit_key | `solana_rpc` |
-| backend | JSON-RPC `getAccountInfo` on the curve account; for a PumpSwap pool, `getProgramAccounts` memcmp at base-mint offset 43, then the LP mint supply and largest accounts. The pool prefix is verified; bytes after offset 244 are ASSUMED and unused |
+| backend | JSON-RPC `getAccountInfo` on the curve account; for a PumpSwap pool, derive the canonical migration PDA and `getAccountInfo` it. A missing or invalid account falls back to paginated `getProgramAccountsV2` (memcmp at offset 43) or `getProgramAccounts`. Then the LP mint supply and largest accounts. The pool prefix is verified; bytes after offset 244 are ASSUMED and unused |
 | callers | rug |
 | source | new (no existing tool covers LP; `scout-pumpgrok-pack.md:125`) |
 

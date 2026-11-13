@@ -49,7 +49,8 @@ PINNED_SECTION_DIGESTS: dict[str, str] = {
     "platform": "ffec8c9d9df99d776e4188e75abbae89acd4fe967e45e5a7d4b7b3fc6213cc22",
     "wallet": "a3f771e706717d5b4865571cee9eee8478711d68d76ad3f3a2a659325fe8536b",
     "data": "cea8148bc8779c7347e700c0beca94434562c9811ce3b2521279f98d68e9e44f",
-    "rpc": "d0e8d2cd69a3d9c5bbcd3de13cd295599d2cc4311f01f0e9248133812c21d29d",
+    # 2026-11-13: rpc.api_key_hosts scopes the paid key to named hosts.
+    "rpc": "98455d69bda3339eb6aa912ea6371e5a08725b3dcba002f39d3a1ef39535bb1c",
     "grok": "2e4c9dc6ad91eb80b07531dd3ad66ca5386430bc3c56ee3cba0407903747b00b",
     "jupiter": "e31754b27eae6e4697ea81a6dc9cf0f9570cd034b5c52c78b7a8eaaf675a043b",
     "filter": "72883161750cfff0c4689337fd3b1814ddee7e64ccf3844b49dde34b7520ef66",

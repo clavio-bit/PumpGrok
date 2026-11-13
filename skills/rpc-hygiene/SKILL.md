@@ -37,6 +37,7 @@ secret in URL or log line -> redact immediately, rotate the key out of band
 3. S3 - Keep keys out of text: the API key travels in headers or redacted config, never in URLs, log lines, or error messages. If a key leaks into a log, redact the line and rotate the key.
 4. S4 - Mark staleness honestly: when every endpoint is degraded, label the data stale with its age and stop ticket flow that depends on it. A stale price is information; a guessed price is a lie.
 5. S5 - Stay in your grant: SCOUT, WHALE, SNIPER, RUG, and EXIT each call only their rostered subset. Needing another subset is a roster change through RISK, not a reason to borrow.
+6. S6 - Scope the paid key to allowed hosts. The header is `x-api-key`, verified on Helius on 2026-11-13 (HTTP 200 with the header, 401 without). It is sent only to endpoints whose host is in `rpc.api_key_hosts` (`PUMPGROK_RPC__API_KEY_HOSTS`). When that list is empty and a key is set, only the first endpoint receives it. No other host is sent the key. A public fallback therefore cannot see a Helius key. The endpoint URL stays keyless.
 
 ## Failure modes
 
@@ -44,11 +45,12 @@ secret in URL or log line -> redact immediately, rotate the key out of band
 |---|---|---|
 | All endpoints degraded | Outage or exhausted budgets | Mark stale, halt dependent tickets, keep polling on schedule |
 | Key in a log line | URL-built client or verbose error dump | Redact, rotate the key, fix the client to use headers |
+| Key sent to a fallback host | Allow list empty and the paid endpoint is not first, or the host is not listed | Set `rpc.api_key_hosts` to the paid host. Keep the key out of the URL |
 | Wrong-subset call refused | Seat reaching outside its roster | Request the roster change; never work around PermissionDenied |
 | Silent fallback to a cache | Stale data presented as fresh | Attach age and source to every read; fail closed past the freshness bound |
 
 ## References
 
-- RPC client: `src/pumpgrok/tools/onchain/rpc.py` (failover order plus rate limits)
+- RPC client: `src/pumpgrok/tools/onchain/rpc.py` (failover order, host-scoped `x-api-key`, no URLs or header values in errors)
 - Fixture: `tests/fixtures/http/priority_fee.json` (recorded fee response shape)
 - Companion skills: `solana-rpc-and-wallet` (wallet plus failover rules), `key-custody` (secret handling)
