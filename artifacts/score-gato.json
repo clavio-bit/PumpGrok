@@ -1,7 +1,7 @@
 {
   "meta": {
     "source": "solana_rpc",
-    "fetched_at": "2026-11-13 22:54:01.817209+00:00",
+    "fetched_at": "2026-11-13 23:00:18.503663+00:00",
     "freshness_s": 0.0,
     "correlation_id": "none",
     "stale": false,
@@ -33,7 +33,7 @@
       "value": "burned",
       "threshold": "burned or locked",
       "weight": "0.15",
-      "reason": "LP mint supply is 0 and the pool records lp_supply=4193388285614; burned, so it meets lp_lock_min_days. pool=5E3dXLXGwmTDCokA51WYYaKttjFZBwqCoyUHBUi5gt2m base_vault=GH91CTk66aLp2eqcjMUFBmYCQzBonGSpFFoqbt7ZJVbv quote_vault=3pcj98B9o7gWRKQs1bwnMYr2Cc3mnRhC4mFpEJMKweud slot=469100657 source=solana_rpc lookup=canonical_pda"
+      "reason": "LP mint supply is 0 and the pool records lp_supply=4193388285614; burned, so it meets lp_lock_min_days. pool=5E3dXLXGwmTDCokA51WYYaKttjFZBwqCoyUHBUi5gt2m base_vault=GH91CTk66aLp2eqcjMUFBmYCQzBonGSpFFoqbt7ZJVbv quote_vault=3pcj98B9o7gWRKQs1bwnMYr2Cc3mnRhC4mFpEJMKweud slot=469102404 source=solana_rpc lookup=canonical_pda"
     },
     {
       "id": "transfer_tax",
@@ -46,10 +46,10 @@
     {
       "id": "honeypot",
       "status": "pass",
-      "value": "198366890",
+      "value": "198367728",
       "threshold": "sell outAmount>0",
       "weight": "0.15",
-      "reason": "jupiter sell route outAmount=198366890 buyOut=1762341832 sellOut=198366890 buyIn=200000000 priceImpact=-0.1639147754290222200 retained=0.99183445 buyRoutes=Pump.fun Amm sellRoutes=Pump.fun Amm"
+      "reason": "jupiter sell route outAmount=198367728 buyOut=1688498989 sellOut=198367728 buyIn=200000000 priceImpact=-0.601938086695523700 retained=0.99183864 buyRoutes=Pump.fun Amm sellRoutes=Pump.fun Amm"
     },
     {
       "id": "top10_concentration",
@@ -78,10 +78,10 @@
     {
       "id": "liquidity_depth",
       "status": "pass",
-      "value": 9975.37255901,
+      "value": 10195.34378781,
       "threshold": 10.0,
       "weight": "0.15",
-      "reason": "liquidity is 9975.4x the intended size; pool=5E3dXLXGwmTDCokA51WYYaKttjFZBwqCoyUHBUi5gt2m base_vault=GH91CTk66aLp2eqcjMUFBmYCQzBonGSpFFoqbt7ZJVbv quote_vault=3pcj98B9o7gWRKQs1bwnMYr2Cc3mnRhC4mFpEJMKweud slot=469100658 source=solana_rpc lookup=canonical_pda"
+      "reason": "liquidity is 10195.3x the intended size; pool=5E3dXLXGwmTDCokA51WYYaKttjFZBwqCoyUHBUi5gt2m base_vault=GH91CTk66aLp2eqcjMUFBmYCQzBonGSpFFoqbt7ZJVbv quote_vault=3pcj98B9o7gWRKQs1bwnMYr2Cc3mnRhC4mFpEJMKweud slot=469102406 source=solana_rpc lookup=canonical_pda"
     },
     {
       "id": "bundler_cluster",
@@ -101,54 +101,55 @@
     "top10_concentration",
     "deployer_history"
   ],
+  "failed_required_checks": [],
   "evidence": [
     {
       "check": "mint_authority",
       "source": "solana_rpc",
       "slot": null,
-      "fetched_at": "2026-11-13 22:54:01.582485+00:00"
+      "fetched_at": "2026-11-13 23:00:18.277319+00:00"
     },
     {
       "check": "freeze_authority",
       "source": "solana_rpc",
       "slot": null,
-      "fetched_at": "2026-11-13 22:54:01.582501+00:00"
+      "fetched_at": "2026-11-13 23:00:18.277332+00:00"
     },
     {
       "check": "lp_status",
       "source": "solana_rpc",
-      "slot": 469100657,
-      "fetched_at": "2026-11-13 22:54:01.582506+00:00"
+      "slot": 469102404,
+      "fetched_at": "2026-11-13 23:00:18.277338+00:00"
     },
     {
       "check": "token2022_extensions",
       "source": "solana_rpc",
       "slot": null,
-      "fetched_at": "2026-11-13 22:54:01.582525+00:00"
+      "fetched_at": "2026-11-13 23:00:18.277355+00:00"
     },
     {
       "check": "liquidity_depth",
       "source": "solana_rpc",
-      "slot": 469100658,
-      "fetched_at": "2026-11-13 22:54:01.582533+00:00"
+      "slot": 469102406,
+      "fetched_at": "2026-11-13 23:00:18.277361+00:00"
     },
     {
       "check": "transfer_tax",
       "source": "solana_rpc",
-      "slot": 469100658,
-      "fetched_at": "2026-11-13 22:54:01.598019+00:00"
+      "slot": 469102406,
+      "fetched_at": "2026-11-13 23:00:18.290980+00:00"
     },
     {
       "check": "honeypot",
       "source": "https://api.jup.ag/swap/v2/order",
       "slot": null,
-      "fetched_at": "2026-11-13 22:54:01.817006+00:00"
+      "fetched_at": "2026-11-13 23:00:18.503479+00:00"
     },
     {
       "check": "bundler_cluster",
       "source": "unwired",
       "slot": null,
-      "fetched_at": "2026-11-13 22:54:01.817022+00:00"
+      "fetched_at": "2026-11-13 23:00:18.503491+00:00"
     }
   ],
   "thresholds_used": {
