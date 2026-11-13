@@ -5,9 +5,10 @@ top_holders, deployer_history, market.liquidity) and scores 0..100
 (100 = safest) with per-check reasons. Thresholds come from config
 (``SafetyThresholds``) with an optional caller override; any check without
 data returns ``blind``, never an exception. A blind check on a required
-id, or a hard top-5 veto, forces ``verdict_recommendation = KILL``, except
-the SAFE-4/SAFE-8 holder pair stays advisory while no paid RPC provider is
-recorded (amendment 2026-10-25).
+id, a honeypot fail, or a hard top-5 veto, forces
+``verdict_recommendation = KILL``, except the SAFE-4/SAFE-8 holder pair stays
+advisory while no paid RPC provider is recorded (amendment 2026-10-25).
+Honeypot is a required quote-only Jupiter sell to WSOL (amendment 2026-11-13).
 Recommendation only: RISK issues the verdict from the journaled report.
 
 ``creator`` is caller-supplied (creation event): the mint account carries
@@ -47,6 +48,7 @@ from pumpgrok.tools.safety.checks import (
     CheckResult,
 )
 from pumpgrok.tools.safety.checks.authority import check_freeze_authority, check_mint_authority
+from pumpgrok.tools.safety.checks.honeypot import HoneypotProbe, run_honeypot_check
 from pumpgrok.tools.safety.checks.readers import (
     check_deployer_history,
     check_liquidity_depth,
@@ -218,7 +220,7 @@ async def _read_all(inp: ScoreReportIn, rpc: RpcClient, runnable: list[CheckId])
     )
     meta = (
         await _fetch(run_token_metadata(TokenMetadataIn(mint=inp.mint), rpc))
-        if "token2022_extensions" in needed
+        if {"token2022_extensions", "honeypot"} & needed
         else None
     )
     top = (
@@ -374,6 +376,16 @@ def _reader_rows(
     return rows
 
 
+def _insert_by_checklist(rows: list[CheckResult], row: CheckResult) -> None:
+    """Place ``row`` among the scored rows in ``CHECK_IDS`` order."""
+    index = CHECK_IDS.index(row.id)
+    for at, existing in enumerate(rows):
+        if CHECK_IDS.index(existing.id) > index:
+            rows.insert(at, row)
+            return
+    rows.append(row)
+
+
 def _advisory_rows(wanted: set[str], evidence: list[Evidence], clock: Clock) -> list[CheckResult]:
     """Advisory checks are blind by construction in Phase 3 and carry no weight."""
     rows: list[CheckResult] = []
@@ -415,11 +427,32 @@ def _verdict(
     return "CLEAR"
 
 
+async def _append_honeypot(
+    inp: ScoreReportIn,
+    runnable: list[CheckId],
+    readings: _Readings,
+    rows: list[CheckResult],
+    evidence: list[Evidence],
+    *,
+    honeypot: HoneypotProbe | None,
+    clock: Clock,
+) -> None:
+    """Score the required Jupiter sell probe when the caller asked for it."""
+    if "honeypot" not in runnable:
+        return
+    outcome = await run_honeypot_check(mint=inp.mint, metadata=readings.meta, probe=honeypot)
+    _insert_by_checklist(rows, outcome.result)
+    evidence.append(
+        Evidence(check="honeypot", source=outcome.source, slot=None, fetched_at=utcnow(clock))
+    )
+
+
 async def run_score_report(
     inp: ScoreReportIn,
     rpc: RpcClient,
     *,
     thresholds: SafetyThresholds | None = None,
+    honeypot: HoneypotProbe | None = None,
 ) -> dict[str, Any]:
     """Compose the readers and return a validated ``ScoreReportOut`` payload."""
     active = resolve_thresholds(inp.thresholds, thresholds)
@@ -432,6 +465,9 @@ async def run_score_report(
     evidence: list[Evidence] = []
     readings = await _read_all(inp, rpc, runnable)
     rows = _reader_rows(inp, runnable, readings, active, evidence, clock=rpc.clock)
+    await _append_honeypot(
+        inp, runnable, readings, rows, evidence, honeypot=honeypot, clock=rpc.clock
+    )
     rows.extend(_advisory_rows(wanted, evidence, rpc.clock))
 
     score = _score(rows)
@@ -451,7 +487,8 @@ async def run_score_report(
         for r in rows
         if r.status == "blind" and advisory_active and r.id in HOLDER_ADVISORY_PAIR
     ]
-    verdict = _verdict(score, hard_veto or bool(blind_required), active)
+    honeypot_fail = any(row.id == "honeypot" and row.status == "fail" for row in rows)
+    verdict = _verdict(score, hard_veto or bool(blind_required) or honeypot_fail, active)
 
     out = {
         "score": int(score),
@@ -471,11 +508,16 @@ async def run_score_report(
     return ScoreReportOut.model_validate(out).model_dump()
 
 
-def build_score_report_tool(rpc: RpcClient, thresholds: SafetyThresholds | None = None) -> Tool:
+def build_score_report_tool(
+    rpc: RpcClient,
+    thresholds: SafetyThresholds | None = None,
+    *,
+    honeypot: HoneypotProbe | None = None,
+) -> Tool:
     """Bind ``safety.score_report`` to one injected RPC client and thresholds."""
 
     @tool(SCORE_SPEC)
     async def _score_report(payload: ScoreReportIn) -> dict[str, Any]:
-        return await run_score_report(payload, rpc, thresholds=thresholds)
+        return await run_score_report(payload, rpc, thresholds=thresholds, honeypot=honeypot)
 
     return _score_report

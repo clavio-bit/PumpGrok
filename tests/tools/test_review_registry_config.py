@@ -80,9 +80,10 @@ def test_operator_registry_forwards_safety_thresholds(
     seen: dict[str, Any] = {}
     real_factory = tools_mod.build_score_report_tool
 
-    def _spy_factory(rpc: Any, thresholds: Any = None) -> Any:
+    def _spy_factory(rpc: Any, thresholds: Any = None, **kwargs: Any) -> Any:
         seen["thresholds"] = thresholds
-        return real_factory(rpc, thresholds)
+        seen["honeypot"] = kwargs.get("honeypot")
+        return real_factory(rpc, thresholds, **kwargs)
 
     monkeypatch.setattr(tools_mod, "build_score_report_tool", _spy_factory)
     _build(tmp_path, settings)
@@ -91,6 +92,9 @@ def test_operator_registry_forwards_safety_thresholds(
     assert thresholds.top10_concentration_fail_pct == 7.5
     assert thresholds.kill_below_score == 55.0
     assert thresholds == settings.safety.thresholds
+    assert seen["honeypot"] is not None
+    assert seen["honeypot"].probe_ui_amount == settings.safety.honeypot_probe_ui_amount
+    assert seen["honeypot"].quote_url == settings.jupiter.quote_url
 
 
 async def test_caller_override_merges_over_configured_thresholds() -> None:

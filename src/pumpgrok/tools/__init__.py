@@ -76,6 +76,7 @@ from pumpgrok.tools.risk.check_limits import build_check_limits_tool
 from pumpgrok.tools.risk.drawdown import build_drawdown_tool
 from pumpgrok.tools.risk.halt_status import build_halt_status_tool
 from pumpgrok.tools.risk.kill_switch import ClosePosition, build_kill_switch_tool, flatten_hook_for
+from pumpgrok.tools.safety.checks.honeypot import HoneypotProbe
 from pumpgrok.tools.safety.score_report import build_score_report_tool
 
 if TYPE_CHECKING:
@@ -181,9 +182,10 @@ def _register_trading(
     thresholds: SafetyThresholds,
     store: LedgerStore,
     clock: Clock,
+    honeypot: HoneypotProbe | None = None,
 ) -> None:
     """Scoring, quote/simulate/place/cancel and position tools (real adapter)."""
-    reg.register(build_score_report_tool(rpc, thresholds))
+    reg.register(build_score_report_tool(rpc, thresholds, honeypot=honeypot))
     reg.register(build_quote_tool(adapter, clock))
     reg.register(build_simulate_tool(adapter, clock))
     reg.register(build_place_tool(adapter, lambda: budget, clock))
@@ -399,6 +401,11 @@ def build_operator_registry(
         thresholds=settings.safety.thresholds,
         store=store,
         clock=active_clock,
+        honeypot=HoneypotProbe(
+            client=client,
+            probe_ui_amount=settings.safety.honeypot_probe_ui_amount,
+            quote_url=settings.jupiter.quote_url,
+        ),
     )
     _register_ledger_and_risk(
         reg,

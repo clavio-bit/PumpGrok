@@ -243,7 +243,7 @@ tenacity retries. Failover rotates to the next URL on timeout, 5xx, 429, or
 | timeout_s | 45 (composes up to 8 onchain/market calls) |
 | retry | none at this level (inner tools retry) |
 | rate_limit_key | `solana_rpc` (inherited) |
-| backend | composes `onchain.authorities`, `onchain.lp_status`, `onchain.token_metadata`, `onchain.top_holders`, `onchain.deployer_history`, `market.liquidity`, `market.trades`; honeypot heuristic = sell-side simulation through `exec.simulate` on the PaperAdapter curve math (no transaction) |
+| backend | composes `onchain.authorities`, `onchain.lp_status`, `onchain.token_metadata`, `onchain.top_holders`, `onchain.deployer_history`, `market.liquidity`; honeypot is required and is a quote-only Jupiter Swap V2 sell (`GET https://api.jup.ag/swap/v2/order`, mint to WSOL). It does not use `exec.simulate` or `exec.quote`. No taker, no build, no execute, no submit, no signing. |
 | callers | rug only (R35: RISK consumes the report event through `portfolio.ledger_read` and never re-runs it) |
 | source | new orchestration; metrics from `analyzer.py:168` `compute_metrics`, `:219` `_count_snipers`, `:226` `_wallet_diversity`, `:285` `_veto_reason`, `:294` `_risk_score` |
 
@@ -253,7 +253,11 @@ Threshold keys (config `safety.thresholds`, every value REVIEW; defaults from
 `liquidity_multiple_min: 10`, `liquidity_multiple_recommended: 20`,
 `lp_lock_min_days: 180`, `creator_share_veto: 0.25`, `top5_share_veto: 0.80`,
 `kill_below_score: 40`, `conditional_below_score: 70`. Any `blind` check on a required
-id forces `verdict_recommendation = KILL` (constitution clause 10).
+id forces `verdict_recommendation = KILL` (constitution clause 10). `honeypot` is required
+(amendment 2026-11-13): probe size `safety.honeypot_probe_ui_amount` (default 1 whole token,
+raw units = amount * `10**decimals`). Jupiter downtime or unreadable decimals are BLIND and
+therefore KILL. No route, missing `outAmount`, or `outAmount` 0 is FAIL and therefore KILL.
+High price impact is evidence only. `transfer_tax` and `bundler_cluster` stay advisory.
 
 ## 4. exec.* (Sniper owns `src/pumpgrok/tools/exec/` and `src/pumpgrok/execution/`; `src/pumpgrok/execution/live/**` is RISK's, R31)
 
@@ -775,7 +779,7 @@ are converted to lamports at the boundary (R28).
 | Telegram Bot API delivery path: `hermes/profiles.yaml:16` names a token profile but no code sends today | `sendMessage` via httpx with token from env `PUMPGROK_TELEGRAM_TOKEN` |
 | Vendor `Notifier` line numbers beyond `:40` and `:62` (`_send :91`, `_allow_now`) come from `scout-vendor-engine.md:44` | as the scout reports |
 | Timeout and retry values | REVIEW; all are config fields under `tools.<name>` |
-| Honeypot heuristic via `exec.simulate` sell path on bonding-curve math | sufficient for pump.fun curve tokens; graduated tokens get `status: blind` for `honeypot` until a sell-simulation source exists |
+| Jupiter order-quote field names beyond `outAmount`, `priceImpact`, and route `swapInfo.label` | the honeypot check records those three and ignores any `transaction` field; it never submits one |
 | Vendor line numbers `src/pipeline.py:334` `_check_transitions`, `src/reputation.py:31,48,129`, `scripts/dashboard.py`, `scripts/replay.py` come from `scout-vendor-engine.md:33,43,51-52`, not re-read here | as the scout reports |
 | R28 money-field names (`*_lamports`, `*_units`, `Ratio` strings) were chosen here; `docs/design/interfaces.md` and `docs/design/paper-engine.md` must use the same names [INFERENCE] | these names; report cross-doc drift |
 | `exec.cancel` maps to `OrderRejected` with `reason: cancelled` because R32 defines no cancel event type [INFERENCE] | `OrderRejected`; `reason` enum gains `cancelled` |

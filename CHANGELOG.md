@@ -4,6 +4,10 @@ All notable changes to PumpGrok are recorded here. The format follows Keep a Cha
 
 ## [Unreleased] - v4 Phase 12: event runtime core
 
+### Changed
+
+- Amendment 2026-11-13: the honeypot safety check is required and is a quote-only Jupiter sell probe (mint to WSOL). BLIND or FAIL forces KILL. Paper only. No live execution, live gate, signing, or wallet change.
+
 ### Added
 
 - A typed event library under `src/pumpgrok/events/`: one `EventKind` catalog, lane bus, sidecar sqlite at `var/desk/events.sqlite`, deterministic drain, and `SourceSupervisor`. It is not wired into the supervisor. Event ids include required `occurred_at`.

@@ -97,6 +97,8 @@ When a required safety check cannot obtain live data (RPC down, REST down, metad
 
 SAFE-4 (holder concentration) and SAFE-8 (deployer history) report BLIND as advisory while no paid RPC provider is recorded in .planning/STATE.md. The blind result and its reason are written into the safety verdict. Every other required check that reports BLIND still makes the token KILL for the session. Open positions keep the blind_flatten rule unchanged. The advisory exception ends when a provider is recorded.
 
+Amendment 2026-11-13 (paper only, fail-closed). The honeypot check is required. `transfer_tax` and `bundler_cluster` stay advisory. Honeypot is a quote-only Jupiter Swap V2 sell probe: `GET` `https://api.jup.ag/swap/v2/order` with `inputMint` set to the token mint and `outputMint` set to WSOL (`So11111111111111111111111111111111111111112`). The probe size is `safety.honeypot_probe_ui_amount` whole tokens (default 1; env `PUMPGROK_SAFETY__HONEYPOT_PROBE_UI_AMOUNT`). Raw units are that amount times `10**decimals`, read from the mint account. Unreadable decimals are BLIND. HTTP errors, non-200 responses that do not say no route, timeouts, network errors, malformed JSON, and a body with `ok: false` are BLIND. A response that says no route, or an `outAmount` that is missing or 0, is FAIL. A route with `outAmount` > 0 is PASS. High price impact is recorded as a warning and is not a honeypot. BLIND or FAIL on this required check forces KILL. The probe never sends a taker or user public key and never calls build, execute, submit, or any signing endpoint. This amendment does not change live execution, the live gate, signing, or wallet code. See `.planning/AMENDMENT-2026-11-13.md`.
+
 ## 3. Paper-first policy
 
 ### 3.1 The paper window

@@ -7,6 +7,8 @@ tests/config/test_settings_surface_characterization.py.
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -83,3 +85,12 @@ class SafetySettings(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     thresholds: SafetyThresholds = Field(default_factory=SafetyThresholds)
+    # Whole tokens. Raw probe units are this times 10**mint decimals.
+    honeypot_probe_ui_amount: Decimal = Field(
+        default=Decimal("1"),
+        gt=0,
+        description=(
+            "Whole tokens for the quote-only Jupiter honeypot sell probe. "
+            "Raw units are this value times 10**decimals."
+        ),
+    )
