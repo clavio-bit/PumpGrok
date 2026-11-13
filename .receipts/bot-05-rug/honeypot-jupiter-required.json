@@ -1,0 +1,28 @@
+{
+  "task_id": "honeypot-jupiter-required",
+  "bot": "bot-05-rug",
+  "branch": "cursor/honeypot-required-jupiter-0fc4",
+  "purpose": "Make the honeypot safety check required and back it with a quote-only Jupiter sell probe. Paper only. No live execution, live gate, signing, or wallet change.",
+  "commands": [
+    {"cmd": "make lint", "exit_code": 0, "output_tail": "ruff check . All checks passed; ruff format --check 919 files already formatted"},
+    {"cmd": "make typecheck", "exit_code": 0, "output_tail": "mypy src/ Success: no issues found in 234 source files"},
+    {"cmd": "make test", "exit_code": 0, "output_tail": "pytest -q -m 'not slow' --cov=pumpgrok passed; coverage 91.52% (floor 89.9%)"},
+    {"cmd": "uv run pytest -q tests/tools/safety/test_honeypot.py", "exit_code": 0, "output_tail": "22 passed after the four extra cases were added"},
+    {"cmd": "uv run python (score report for BONK and a fake mint)", "exit_code": 0, "output_tail": "bonk CLEAR pass outAmount=33 probeRaw=100000; fake KILL blind mint decimals unreadable"}
+  ],
+  "claims": [
+    {"claim": "make lint exited 0", "evidence_command_index": 0},
+    {"claim": "make typecheck exited 0", "evidence_command_index": 1},
+    {"claim": "make test exited 0 with coverage above the floor", "evidence_command_index": 2},
+    {"claim": "The honeypot MockTransport tests exited 0", "evidence_command_index": 3},
+    {"claim": "The live score-report demo exited 0. BONK passed. The fake mint was BLIND and the verdict was KILL.", "evidence_command_index": 4}
+  ],
+  "unverified": [
+    "make test ran before the last four honeypot tests were added. Those four were run afterward in tests/tools/safety/test_honeypot.py and passed. The full suite was not repeated after that addition.",
+    "make audit, docker compose, and ci/gates/run_all.py were not run.",
+    "The fake-mint score report stops at unreadable decimals and does not call Jupiter. A separate GET of the order URL for that mint, done while designing the classifier, returned HTTP 400 with error text that the mint is not a valid token. That response is not in the saved score-report JSON.",
+    "The branch prefix is cursor/, so the seat-prefixed G-1 attribution in .github/workflows/gates.yml will not resolve a bot id.",
+    "Live trading was not started. No live adapter, signer, or wallet file was edited."
+  ],
+  "rollback_plan": "Revert this pull request. honeypot returns to ADVISORY_IDS, the Jupiter sell probe is removed, and score reports treat honeypot as an advisory blind again. No ledger, live gate, or wallet state changes with this revert."
+}

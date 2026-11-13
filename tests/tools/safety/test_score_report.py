@@ -17,6 +17,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
 
+from decimal import Decimal
+
 import httpx
 from pydantic import ValidationError
 
@@ -28,6 +30,7 @@ from pumpgrok.replay.clock import FixtureClock
 from pumpgrok.tools import build_registry
 from pumpgrok.tools.onchain.curve_layout import CURVE_ACCOUNT_SIZE, encode_curve_fixture
 from pumpgrok.tools.onchain.rpc import RpcClient
+from pumpgrok.tools.safety.checks.honeypot import HoneypotProbe
 from pumpgrok.tools.safety.score_report import SCORE_SPEC, ScoreReportIn, build_score_report_tool
 
 START = 1469918176.385
@@ -111,14 +114,33 @@ def _handler(*, freeze_live: bool, supply: str, holders_ok: bool):
     return handler
 
 
+def _jupiter_pass(request: httpx.Request) -> httpx.Response:
+    assert "taker" not in request.url.params
+    return httpx.Response(
+        200,
+        json={
+            "inAmount": "1000000",
+            "outAmount": "1000",
+            "priceImpact": "0.1",
+            "routePlan": [{"swapInfo": {"label": "mock-amm"}, "percent": 100}],
+        },
+    )
+
+
 def _run_with(handler, payload: ScoreReportIn):
     transport = httpx.MockTransport(handler)  # type: ignore[arg-type]
     client = httpx.AsyncClient(transport=transport)
     rpc = RpcClient(
         ["https://rpc.invalid"], client, FixtureClock(start=START), rng=random.Random(9)
     )
+    jupiter = httpx.AsyncClient(transport=httpx.MockTransport(_jupiter_pass))
     reg, _ = build_registry(clock=FixtureClock(start=START), rng=random.Random(11))
-    reg.register(build_score_report_tool(rpc))
+    reg.register(
+        build_score_report_tool(
+            rpc,
+            honeypot=HoneypotProbe(client=jupiter, probe_ui_amount=Decimal("1")),
+        )
+    )
     bot = BotManifest(
         id="bot-05-rug",
         display="rug",
@@ -159,7 +181,9 @@ async def test_clear_report_on_clean_data() -> None:
     assert out.score == 100
     assert out.verdict_recommendation == "CLEAR"
     assert out.hard_veto is False
-    assert out.blind_checks == ["transfer_tax", "honeypot", "bundler_cluster"]
+    assert out.blind_checks == ["transfer_tax", "bundler_cluster"]
+    honeypot = next(c for c in out.checks if c.id == "honeypot")
+    assert honeypot.status == "pass"
     assert out.meta.source == "solana_rpc"
     assert out.meta.freshness_s == 0.0
     assert out.thresholds_used["kill_below_score"] == 40.0

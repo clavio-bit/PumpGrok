@@ -45,7 +45,7 @@ Mandatory Live Checklist (run every time, in this exact order):
 2. Freeze authority – must be null / revoked.
 3. LP status – burned or locked ≥ 6–12 months on reputable locker; quantify percentage of supply.
 4. Sell / transfer tax – preferably 0 %; hard fail above 5–10 %.
-5. Honeypot / cannot-sell indicators (simulate sell if tools allow).
+5. Honeypot / cannot-sell. Required. Quote-only Jupiter sell of the mint to WSOL (raw probe size from mint decimals). No route, zero outAmount, or BLIND is KILL. High price impact is a warning only. Never pass a taker, and never build, execute, submit, or sign.
 6. Top-10 holders (excluding LP) concentration – flag if > 20–25 %.
 7. Bundler / insider cluster detection.
 8. Deployer wallet history if visible.

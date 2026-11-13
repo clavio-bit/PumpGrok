@@ -27,6 +27,13 @@ def test_threshold_defaults_match_review_values() -> None:
 
 def test_settings_carries_safety_section() -> None:
     assert SafetySettings().thresholds.kill_below_score == 40.0
+    assert SafetySettings().honeypot_probe_ui_amount == 1
+
+
+def test_env_overrides_honeypot_probe_size(monkeypatch) -> None:
+    monkeypatch.setenv("PUMPGROK_SAFETY__HONEYPOT_PROBE_UI_AMOUNT", "1000")
+    settings = load_settings()
+    assert settings.safety.honeypot_probe_ui_amount == 1000
 
 
 def test_overlays_pin_safety_thresholds() -> None:

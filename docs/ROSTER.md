@@ -252,7 +252,7 @@ values every manifest repeats unchanged.
 | Field | Value |
 |---|---|
 | channel | Trading Floor |
-| purpose | Pre-trade due diligence: runs `safety.score_report` (mint/freeze authority, LP status, tax, honeypot heuristics, concentration, bundler, deployer history, Token-2022 extensions, liquidity depth: the 10 checks at `agents/risk.md:39-49`) and hands the scored report to RISK. Post-fill: watches every open position for LP removal, mint events, insider sells, freeze/tax changes, suspicious programs (`agents/rug.md:38-43`) and raises structured alerts (`rug.md:45-49`) |
+| purpose | Pre-trade due diligence: runs `safety.score_report` (mint/freeze authority, LP status, tax, required Jupiter sell-quote honeypot check, concentration, bundler, deployer history, Token-2022 extensions, liquidity depth: the 10 checks at `agents/risk.md:39-49`) and hands the scored report to RISK. Post-fill: watches every open position for LP removal, mint events, insider sells, freeze/tax changes, suspicious programs (`agents/rug.md:38-43`) and raises structured alerts (`rug.md:45-49`) |
 | inputs | LEAD events; fill events; `onchain.token_metadata`, `onchain.authorities`, `onchain.lp_status`, `onchain.top_holders`; `market.price`; `market.liquidity` |
 | outputs | safety report events (`JournalNote`, `note_kind: safety_report`) and alert events (`Escalation`, `kind: rug_flag`, Recommended Action Emergency Exit / Watch / Escalate), both appended through `desk.event_emit` (core eight); the supervisor relays every `Escalation` to `notify.alert` |
 | skills (existing) | position-monitoring, desk-monitoring, grokbot-pipeline, solana-market-data (`rug.md:6-10`), risk-audit (checklist procedure moves here), hermes-cron-desk |

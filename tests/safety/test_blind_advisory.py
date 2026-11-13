@@ -20,6 +20,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
+from decimal import Decimal
+
 import httpx
 import pytest
 
@@ -30,6 +32,7 @@ from pumpgrok.replay.clock import FixtureClock
 from pumpgrok.tools import build_registry
 from pumpgrok.tools.onchain.curve_layout import CURVE_ACCOUNT_SIZE, encode_curve_fixture
 from pumpgrok.tools.onchain.rpc import RpcClient
+from pumpgrok.tools.safety.checks.honeypot import HoneypotProbe
 from pumpgrok.tools.safety.provider import paid_rpc_provider_recorded
 from pumpgrok.tools.safety.score_report import ScoreReportIn, build_score_report_tool
 
@@ -119,14 +122,32 @@ def _handler(
     return handler
 
 
+def _jupiter_pass(request: httpx.Request) -> httpx.Response:
+    return httpx.Response(
+        200,
+        json={
+            "inAmount": "1000000",
+            "outAmount": "1000",
+            "priceImpact": "0.1",
+            "routePlan": [{"swapInfo": {"label": "mock-amm"}, "percent": 100}],
+        },
+    )
+
+
 def _run_with(handler, payload):
     transport = httpx.MockTransport(handler)
     client = httpx.AsyncClient(transport=transport)
     rpc = RpcClient(
         ["https://rpc.invalid"], client, FixtureClock(start=START), rng=random.Random(9)
     )
+    jupiter = httpx.AsyncClient(transport=httpx.MockTransport(_jupiter_pass))
     reg, _ = build_registry(clock=FixtureClock(start=START), rng=random.Random(11))
-    reg.register(build_score_report_tool(rpc))
+    reg.register(
+        build_score_report_tool(
+            rpc,
+            honeypot=HoneypotProbe(client=jupiter, probe_ui_amount=Decimal("1")),
+        )
+    )
     bot = BotManifest(
         id="bot-05-rug",
         display="rug",

@@ -1,0 +1,48 @@
+{
+  "meta": {
+    "source": "solana_rpc",
+    "fetched_at": "2026-11-13 21:20:43.510622+00:00",
+    "freshness_s": 0.0,
+    "correlation_id": "none",
+    "stale": false,
+    "reason": null
+  },
+  "score": 100,
+  "verdict_recommendation": "KILL",
+  "hard_veto": false,
+  "checks": [
+    {
+      "id": "honeypot",
+      "status": "blind",
+      "value": null,
+      "threshold": "outAmount>0",
+      "weight": "0.15",
+      "reason": "mint decimals unreadable"
+    }
+  ],
+  "blind_checks": [
+    "honeypot"
+  ],
+  "advisory_blind_checks": [],
+  "evidence": [
+    {
+      "check": "honeypot",
+      "source": "solana_rpc",
+      "slot": null,
+      "fetched_at": "2026-11-13 21:20:43.510427+00:00"
+    }
+  ],
+  "thresholds_used": {
+    "transfer_tax_hard_fail_pct": 10.0,
+    "transfer_tax_warn_pct": 5.0,
+    "top10_concentration_warn_pct": 20.0,
+    "top10_concentration_fail_pct": 25.0,
+    "liquidity_multiple_min": 10.0,
+    "liquidity_multiple_recommended": 20.0,
+    "lp_lock_min_days": 180.0,
+    "creator_share_veto": 0.25,
+    "top5_share_veto": 0.8,
+    "kill_below_score": 40.0,
+    "conditional_below_score": 70.0
+  }
+}
