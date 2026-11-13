@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import sys
 import tomllib
+from decimal import Decimal
 from pathlib import Path
+
+import pytest
+from pydantic import ValidationError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
 
@@ -27,13 +31,18 @@ def test_threshold_defaults_match_review_values() -> None:
 
 def test_settings_carries_safety_section() -> None:
     assert SafetySettings().thresholds.kill_below_score == 40.0
-    assert SafetySettings().honeypot_probe_ui_amount == 1
+    assert SafetySettings().honeypot_probe_sol is None
 
 
-def test_env_overrides_honeypot_probe_size(monkeypatch) -> None:
-    monkeypatch.setenv("PUMPGROK_SAFETY__HONEYPOT_PROBE_UI_AMOUNT", "1000")
+def test_env_overrides_honeypot_probe_sol(monkeypatch) -> None:
+    monkeypatch.setenv("PUMPGROK_SAFETY__HONEYPOT_PROBE_SOL", "0.5")
     settings = load_settings()
-    assert settings.safety.honeypot_probe_ui_amount == 1000
+    assert settings.safety.honeypot_probe_sol == Decimal("0.5")
+
+
+def test_honeypot_probe_sol_rejects_zero() -> None:
+    with pytest.raises(ValidationError):
+        SafetySettings(honeypot_probe_sol=Decimal("0"))
 
 
 def test_overlays_pin_safety_thresholds() -> None:

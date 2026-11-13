@@ -53,8 +53,8 @@ PINNED_SECTION_DIGESTS: dict[str, str] = {
     "grok": "2e4c9dc6ad91eb80b07531dd3ad66ca5386430bc3c56ee3cba0407903747b00b",
     "jupiter": "e31754b27eae6e4697ea81a6dc9cf0f9570cd034b5c52c78b7a8eaaf675a043b",
     "filter": "72883161750cfff0c4689337fd3b1814ddee7e64ccf3844b49dde34b7520ef66",
-    # 2026-11-13: safety.honeypot_probe_ui_amount (quote-only Jupiter probe size).
-    "safety": "227b4a236e7cd057e1c9fa4ce9f473bafbec62195e243d80d4b61fac0462cae1",
+    # 2026-11-13: safety.honeypot_probe_sol (optional override; None derives the position).
+    "safety": "716552c2bd1fbdacc4b0916945e87a3adf7e1f1010823d722f657cce4366458d",
     "scoring": "402e94eb3d94528d8823e3682ad940df7f9abc18800edd8da3ac86d5856cde08",
     "exits": "71ec150216dbc1ff0105b35e104b7dae4a64ce3845bb06c88f5c3599e22bfff9",
     "ops": "bb1a378d59815ba72e2fc99571cb1e87732b7bee7e14af1e0373344a78679f7a",

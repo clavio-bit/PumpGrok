@@ -17,8 +17,6 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
 
-from decimal import Decimal
-
 import httpx
 from pydantic import ValidationError
 
@@ -138,7 +136,7 @@ def _run_with(handler, payload: ScoreReportIn):
     reg.register(
         build_score_report_tool(
             rpc,
-            honeypot=HoneypotProbe(client=jupiter, probe_ui_amount=Decimal("1")),
+            honeypot=HoneypotProbe(client=jupiter, probe_lamports=200_000_000),
         )
     )
     bot = BotManifest(
@@ -181,7 +179,10 @@ async def test_clear_report_on_clean_data() -> None:
     assert out.score == 100
     assert out.verdict_recommendation == "CLEAR"
     assert out.hard_veto is False
-    assert out.blind_checks == ["transfer_tax", "bundler_cluster"]
+    assert out.blind_checks == ["bundler_cluster"]
+    transfer_tax = next(c for c in out.checks if c.id == "transfer_tax")
+    assert transfer_tax.status == "pass"
+    assert transfer_tax.value == 0
     honeypot = next(c for c in out.checks if c.id == "honeypot")
     assert honeypot.status == "pass"
     assert out.meta.source == "solana_rpc"

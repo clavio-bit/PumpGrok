@@ -243,7 +243,7 @@ tenacity retries. Failover rotates to the next URL on timeout, 5xx, 429, or
 | timeout_s | 45 (composes up to 8 onchain/market calls) |
 | retry | none at this level (inner tools retry) |
 | rate_limit_key | `solana_rpc` (inherited) |
-| backend | composes `onchain.authorities`, `onchain.lp_status`, `onchain.token_metadata`, `onchain.top_holders`, `onchain.deployer_history`, `market.liquidity`; honeypot is required and is a quote-only Jupiter Swap V2 sell (`GET https://api.jup.ag/swap/v2/order`, mint to WSOL). It does not use `exec.simulate` or `exec.quote`. No taker, no build, no execute, no submit, no signing. |
+| backend | composes `onchain.authorities`, `onchain.lp_status`, `onchain.token_metadata`, `onchain.top_holders`, `onchain.deployer_history`, `market.liquidity`; honeypot is a required quote-only Jupiter Swap V2 round trip (`GET https://api.jup.ag/swap/v2/order`, WSOL to the mint, then that token amount back to WSOL) sized to the intended position; transfer tax reads the mint account. Neither check uses `exec.simulate` or `exec.quote`. No taker, no build, no execute, no submit, no signing. |
 | callers | rug only (R35: RISK consumes the report event through `portfolio.ledger_read` and never re-runs it) |
 | source | new orchestration; metrics from `analyzer.py:168` `compute_metrics`, `:219` `_count_snipers`, `:226` `_wallet_diversity`, `:285` `_veto_reason`, `:294` `_risk_score` |
 
@@ -253,11 +253,22 @@ Threshold keys (config `safety.thresholds`, every value REVIEW; defaults from
 `liquidity_multiple_min: 10`, `liquidity_multiple_recommended: 20`,
 `lp_lock_min_days: 180`, `creator_share_veto: 0.25`, `top5_share_veto: 0.80`,
 `kill_below_score: 40`, `conditional_below_score: 70`. Any `blind` check on a required
-id forces `verdict_recommendation = KILL` (constitution clause 10). `honeypot` is required
-(amendment 2026-11-13): probe size `safety.honeypot_probe_ui_amount` (default 1 whole token,
-raw units = amount * `10**decimals`). Jupiter downtime or unreadable decimals are BLIND and
-therefore KILL. No route, missing `outAmount`, or `outAmount` 0 is FAIL and therefore KILL.
-High price impact is evidence only. `transfer_tax` and `bundler_cluster` stay advisory.
+id forces `verdict_recommendation = KILL` (constitution clause 10). `honeypot` and
+`transfer_tax` are required (amendment 2026-11-13). The honeypot size is
+`paper_equity_sol * max_trade_fraction` (0.2 SOL at the defaults) unless
+`safety.honeypot_probe_sol` is set. Leg one is a WSOL buy of that many lamports.
+Leg two sells the token outAmount back to WSOL. Jupiter downtime, a malformed
+quote, or unreadable decimals are BLIND and therefore KILL. No buy route is
+BLIND (`no buy route`). No sell route, a missing sell outAmount, or a sell
+outAmount of 0 is FAIL and therefore KILL. Sell price impact above
+`limits.max_slippage_bps` is a warning (`position-size sell impact exceeds max
+slippage`) and does not change the status. The row records both outAmounts, the
+sell price impact, the retained fraction, and both route labels. Transfer tax
+passes at 0 for a classic SPL mint and for a Token-2022 mint without
+TransferFeeConfig. A TransferFeeConfig uses the newer fee when its epoch is
+active and records both fees plus both maximum fees. Warn at 5 percent, fail at
+10 percent. An unreadable mint or an undecodable extension is BLIND and
+therefore KILL. `bundler_cluster` stays advisory.
 
 ## 4. exec.* (Sniper owns `src/pumpgrok/tools/exec/` and `src/pumpgrok/execution/`; `src/pumpgrok/execution/live/**` is RISK's, R31)
 

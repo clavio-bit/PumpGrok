@@ -93,8 +93,26 @@ def test_operator_registry_forwards_safety_thresholds(
     assert thresholds.kill_below_score == 55.0
     assert thresholds == settings.safety.thresholds
     assert seen["honeypot"] is not None
-    assert seen["honeypot"].probe_ui_amount == settings.safety.honeypot_probe_ui_amount
+    assert seen["honeypot"].probe_lamports == 200_000_000
+    assert seen["honeypot"].max_slippage_bps == settings.limits.max_slippage_bps
     assert seen["honeypot"].quote_url == settings.jupiter.quote_url
+
+
+def test_operator_registry_honors_honeypot_probe_override(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("PUMPGROK_SAFETY__HONEYPOT_PROBE_SOL", "0.5")
+    settings = load_settings()
+    seen: dict[str, Any] = {}
+    real_factory = tools_mod.build_score_report_tool
+
+    def _spy_factory(rpc: Any, thresholds: Any = None, **kwargs: Any) -> Any:
+        seen["honeypot"] = kwargs.get("honeypot")
+        return real_factory(rpc, thresholds, **kwargs)
+
+    monkeypatch.setattr(tools_mod, "build_score_report_tool", _spy_factory)
+    _build(tmp_path, settings)
+    assert seen["honeypot"].probe_lamports == 500_000_000
 
 
 async def test_caller_override_merges_over_configured_thresholds() -> None:

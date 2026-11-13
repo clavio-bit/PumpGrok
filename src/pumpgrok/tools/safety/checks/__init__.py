@@ -2,9 +2,11 @@
 
 Every check returns a reasoned row; a check without data returns
 ``status="blind"`` instead of raising. ``REQUIRED_IDS`` force a KILL
-verdict when blind. ``ADVISORY_IDS`` (transfer tax and bundler cluster)
-stay blind by construction and never force the verdict on their own.
-Honeypot is required: a quote-only Jupiter sell probe (amendment 2026-11-13).
+verdict when blind. ``ADVISORY_IDS`` (bundler cluster) stays blind by
+construction and never forces the verdict on its own.
+Honeypot is required: a quote-only Jupiter round trip at the intended
+position (amendment 2026-11-13). Transfer tax is required: it reads the
+mint account (amendment 2026-11-13).
 """
 
 from __future__ import annotations
@@ -45,6 +47,7 @@ REQUIRED_IDS: frozenset[str] = frozenset(
         "mint_authority",
         "freeze_authority",
         "lp_status",
+        "transfer_tax",
         "honeypot",
         "top10_concentration",
         "deployer_history",
@@ -54,7 +57,7 @@ REQUIRED_IDS: frozenset[str] = frozenset(
 )
 
 
-ADVISORY_IDS: frozenset[str] = frozenset({"transfer_tax", "bundler_cluster"})
+ADVISORY_IDS: frozenset[str] = frozenset({"bundler_cluster"})
 
 # Amendment 2026-10-25: SAFE-4 (top10_concentration) and SAFE-8
 # (deployer_history) report BLIND as advisory while no paid RPC provider is

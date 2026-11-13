@@ -8,7 +8,9 @@ data returns ``blind``, never an exception. A blind check on a required
 id, a honeypot fail, or a hard top-5 veto, forces
 ``verdict_recommendation = KILL``, except the SAFE-4/SAFE-8 holder pair stays
 advisory while no paid RPC provider is recorded (amendment 2026-10-25).
-Honeypot is a required quote-only Jupiter sell to WSOL (amendment 2026-11-13).
+Honeypot is a required quote-only Jupiter round trip at the intended
+position (amendment 2026-11-13). Transfer tax is required and reads the
+mint account (amendment 2026-11-13).
 Recommendation only: RISK issues the verdict from the journaled report.
 
 ``creator`` is caller-supplied (creation event): the mint account carries
@@ -56,6 +58,7 @@ from pumpgrok.tools.safety.checks.readers import (
     check_token2022_extensions,
     check_top10_concentration,
 )
+from pumpgrok.tools.safety.checks.transfer_tax import run_transfer_tax_check
 from pumpgrok.tools.safety.provider import paid_rpc_provider_recorded
 
 _WARN_PENALTY = Decimal(10)
@@ -427,6 +430,30 @@ def _verdict(
     return "CLEAR"
 
 
+async def _append_transfer_tax(
+    inp: ScoreReportIn,
+    runnable: list[CheckId],
+    rows: list[CheckResult],
+    evidence: list[Evidence],
+    *,
+    rpc: RpcClient,
+    thresholds: SafetyThresholds,
+) -> None:
+    """Score the mint's transfer fee when the caller asked for it."""
+    if "transfer_tax" not in runnable:
+        return
+    outcome = await run_transfer_tax_check(mint=inp.mint, rpc=rpc, thresholds=thresholds)
+    _insert_by_checklist(rows, outcome.result)
+    evidence.append(
+        Evidence(
+            check="transfer_tax",
+            source=outcome.source,
+            slot=outcome.slot,
+            fetched_at=utcnow(rpc.clock),
+        )
+    )
+
+
 async def _append_honeypot(
     inp: ScoreReportIn,
     runnable: list[CheckId],
@@ -465,6 +492,7 @@ async def run_score_report(
     evidence: list[Evidence] = []
     readings = await _read_all(inp, rpc, runnable)
     rows = _reader_rows(inp, runnable, readings, active, evidence, clock=rpc.clock)
+    await _append_transfer_tax(inp, runnable, rows, evidence, rpc=rpc, thresholds=active)
     await _append_honeypot(
         inp, runnable, readings, rows, evidence, honeypot=honeypot, clock=rpc.clock
     )

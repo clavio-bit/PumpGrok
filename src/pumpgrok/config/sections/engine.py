@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class FilterSettings(BaseModel):
@@ -85,12 +85,18 @@ class SafetySettings(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     thresholds: SafetyThresholds = Field(default_factory=SafetyThresholds)
-    # Whole tokens. Raw probe units are this times 10**mint decimals.
-    honeypot_probe_ui_amount: Decimal = Field(
-        default=Decimal("1"),
-        gt=0,
+    # None derives paper_equity_sol * max_trade_fraction at the composition root.
+    honeypot_probe_sol: Decimal | None = Field(
+        default=None,
         description=(
-            "Whole tokens for the quote-only Jupiter honeypot sell probe. "
-            "Raw units are this value times 10**decimals."
+            "Override SOL size for the quote-only honeypot round trip. "
+            "None derives paper_equity_sol * max_trade_fraction."
         ),
     )
+
+    @field_validator("honeypot_probe_sol")
+    @classmethod
+    def _probe_sol_positive(cls, value: Decimal | None) -> Decimal | None:
+        if value is not None and value <= 0:
+            raise ValueError("honeypot_probe_sol must be positive")
+        return value
