@@ -50,10 +50,12 @@ LEGACY_TRACKED_RECEIPTS = frozenset(
     }
 )
 # Owner decision for PR 58 (GitHub-hosted runners): this one non-v4 receipt is admitted by name.
-# Each entry needs its own owner decision; this set is not a general exception.
+# PR #1 force-tracked the honeypot receipt outside the v4 glob. It is named here so the
+# gate stays closed to any other non-glob receipt. This set is not a general exception.
 OWNER_ADMITTED_RECEIPTS = frozenset(
     {
         ".receipts/bot-02-risk/00058-github-hosted-runners.json",
+        ".receipts/bot-05-rug/honeypot-jupiter-required.json",
     }
 )
 

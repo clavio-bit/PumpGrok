@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "source": "solana_rpc",
+    "fetched_at": "2026-11-13 21:50:25.013778+00:00",
+    "freshness_s": 0.0,
+    "correlation_id": "none",
+    "stale": false,
+    "reason": null
+  },
+  "score": 100,
+  "verdict_recommendation": "CLEAR",
+  "hard_veto": false,
+  "checks": [
+    {
+      "id": "transfer_tax",
+      "status": "pass",
+      "value": 0.0,
+      "threshold": "warn>=5 fail>=10",
+      "weight": "0.10",
+      "reason": "effective_bps=0 pct=0 epoch=1085 active=newer older_bps=0 older_maximum_fee=0 older_epoch=605 newer_bps=0 newer_maximum_fee=0 newer_epoch=605"
+    },
+    {
+      "id": "honeypot",
+      "status": "pass",
+      "value": "199923978",
+      "threshold": "sell outAmount>0",
+      "weight": "0.15",
+      "reason": "jupiter sell route outAmount=199923978 buyOut=15702209 sellOut=199923978 buyIn=200000000 priceImpact=0.00572233435580312600 retained=0.99961989 buyRoutes=Kipseli,AlphaQ sellRoutes=Manifest,BisonFi"
+    }
+  ],
+  "blind_checks": [],
+  "advisory_blind_checks": [],
+  "evidence": [
+    {
+      "check": "transfer_tax",
+      "source": "solana_rpc",
+      "slot": 469082918,
+      "fetched_at": "2026-11-13 21:50:24.794886+00:00"
+    },
+    {
+      "check": "honeypot",
+      "source": "https://api.jup.ag/swap/v2/order",
+      "slot": null,
+      "fetched_at": "2026-11-13 21:50:25.013469+00:00"
+    }
+  ],
+  "thresholds_used": {
+    "transfer_tax_hard_fail_pct": 10.0,
+    "transfer_tax_warn_pct": 5.0,
+    "top10_concentration_warn_pct": 20.0,
+    "top10_concentration_fail_pct": 25.0,
+    "liquidity_multiple_min": 10.0,
+    "liquidity_multiple_recommended": 20.0,
+    "lp_lock_min_days": 180.0,
+    "creator_share_veto": 0.25,
+    "top5_share_veto": 0.8,
+    "kill_below_score": 40.0,
+    "conditional_below_score": 70.0
+  }
+}

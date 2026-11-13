@@ -51,8 +51,8 @@ Mandatory Live Checklist (run every time, in this exact order):
 1. Mint authority – must be null / revoked.
 2. Freeze authority – must be null / revoked.
 3. LP status – burned or locked ≥ 6–12 months on reputable locker; quantify percentage of supply.
-4. Sell / transfer tax – preferably 0 %; hard fail above 5–10 %.
-5. Honeypot / cannot-sell. Required. Quote-only Jupiter sell of the mint to WSOL (raw probe size from mint decimals). No route, zero outAmount, or BLIND is KILL. High price impact is a warning only. Never pass a taker, and never build, execute, submit, or sign.
+4. Sell / transfer tax. Required. Classic SPL and Token-2022 without TransferFeeConfig pass at 0. With TransferFeeConfig, use the newer fee when its epoch is active, otherwise the older fee. Warn at 5 percent, hard fail at 10 percent. An unreadable mint or undecodable extension is BLIND and therefore KILL.
+5. Honeypot / cannot-sell. Required. Quote-only Jupiter round trip at the intended position (paper equity times max trade fraction, or safety.honeypot_probe_sol). Buy WSOL to the mint, then sell that raw token amount back to WSOL. No taker. An HTTP error, timeout, or malformed response on either leg is BLIND. No buy route is BLIND. No sell route, or a missing or zero sell outAmount, is FAIL and KILL. A positive sell outAmount is PASS. Sell price impact above max slippage is a warning and does not fail the check. Unreadable decimals are BLIND. Never build, execute, submit, or sign.
 6. Top-10 holders (excluding LP) concentration – flag if > 20–25 %.
 7. Bundler / insider cluster detection.
 8. Deployer wallet history if visible.

@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "source": "solana_rpc",
+    "fetched_at": "2026-11-13 21:50:24.743036+00:00",
+    "freshness_s": 0.0,
+    "correlation_id": "none",
+    "stale": false,
+    "reason": null
+  },
+  "score": 100,
+  "verdict_recommendation": "CLEAR",
+  "hard_veto": false,
+  "checks": [
+    {
+      "id": "transfer_tax",
+      "status": "pass",
+      "value": 0.0,
+      "threshold": "warn>=5 fail>=10",
+      "weight": "0.10",
+      "reason": "classic SPL mint has no transfer fee; effective bps 0"
+    },
+    {
+      "id": "honeypot",
+      "status": "pass",
+      "value": "199528410",
+      "threshold": "sell outAmount>0",
+      "weight": "0.15",
+      "reason": "jupiter sell route outAmount=199528410 buyOut=586508317322 sellOut=199528410 buyIn=200000000 priceImpact=-0.5324380863392672500 retained=0.99764205 buyRoutes=Whirlpool,Whirlpool,Meteora DLMM,Scorch sellRoutes=Scorch,Byreal,Deriverse,BisonFi"
+    }
+  ],
+  "blind_checks": [],
+  "advisory_blind_checks": [],
+  "evidence": [
+    {
+      "check": "transfer_tax",
+      "source": "solana_rpc",
+      "slot": 469082916,
+      "fetched_at": "2026-11-13 21:50:24.429704+00:00"
+    },
+    {
+      "check": "honeypot",
+      "source": "https://api.jup.ag/swap/v2/order",
+      "slot": null,
+      "fetched_at": "2026-11-13 21:50:24.742655+00:00"
+    }
+  ],
+  "thresholds_used": {
+    "transfer_tax_hard_fail_pct": 10.0,
+    "transfer_tax_warn_pct": 5.0,
+    "top10_concentration_warn_pct": 20.0,
+    "top10_concentration_fail_pct": 25.0,
+    "liquidity_multiple_min": 10.0,
+    "liquidity_multiple_recommended": 20.0,
+    "lp_lock_min_days": 180.0,
+    "creator_share_veto": 0.25,
+    "top5_share_veto": 0.8,
+    "kill_below_score": 40.0,
+    "conditional_below_score": 70.0
+  }
+}

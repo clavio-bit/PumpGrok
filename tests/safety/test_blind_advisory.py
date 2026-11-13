@@ -20,8 +20,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-from decimal import Decimal
-
 import httpx
 import pytest
 
@@ -145,7 +143,7 @@ def _run_with(handler, payload):
     reg.register(
         build_score_report_tool(
             rpc,
-            honeypot=HoneypotProbe(client=jupiter, probe_ui_amount=Decimal("1")),
+            honeypot=HoneypotProbe(client=jupiter, probe_lamports=200_000_000),
         )
     )
     bot = BotManifest(

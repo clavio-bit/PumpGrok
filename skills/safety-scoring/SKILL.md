@@ -21,7 +21,7 @@ fixtures:
 
 ## L1 - Summary
 
-RUG scores every candidate with `safety.score_report` before it can proceed: authorities, holders, liquidity, and the required honeypot check each report pass, fail, or blind with reasons. Blind is not a pass. A blind required check, including honeypot, forces KILL. Honeypot is a quote-only Jupiter sell of the mint to WSOL. No route or a zero outAmount fails and also forces KILL. High price impact is a warning, not a honeypot. RISK consumes the verdict through `risk.check_limits`, not by re-running the checks.
+RUG scores every candidate with `safety.score_report` before it can proceed: authorities, holders, liquidity, transfer tax, and the required honeypot check each report pass, fail, or blind with reasons. Blind is not a pass. A blind required check, including honeypot and transfer tax, forces KILL. Honeypot is a quote-only Jupiter round trip at the intended position (paper equity times max trade fraction, unless `safety.honeypot_probe_sol` is set): buy WSOL to the mint, then sell that token amount back to WSOL. No buy route is BLIND. No sell route or a zero sell outAmount fails and also forces KILL. Sell price impact above max slippage is a warning, not a fail. Transfer tax reads the mint: classic SPL and Token-2022 without TransferFeeConfig pass at 0; a fee at or above 10 percent fails the row; an undecodable extension is BLIND. RISK consumes the verdict through `risk.check_limits`, not by re-running the checks.
 
 ```
 all checks pass -> scored report attaches to the ticket -> RISK rules
@@ -45,8 +45,10 @@ any check blind -> marked blind, routed to RISK; never treated as pass
 | Threshold edited per ticket | Pressure to clear a favorite | Revert; thresholds change only by reviewed config |
 | Missing reasons | Truncated or summarized report | Re-run the full report; reasons are the verdict |
 | Stale data scored as fresh | Degraded RPC behind the checks | Mark the affected checks blind with the data age |
-| Honeypot called a pass because Jupiter was down | Required check treated as advisory | BLIND on honeypot is KILL. A missing route or outAmount of 0 is FAIL and is also KILL |
+| Honeypot called a pass because Jupiter was down | Required check treated as advisory | BLIND on either leg is KILL. No buy route is BLIND. A missing sell route or sell outAmount of 0 is FAIL and is also KILL |
+| Honeypot probed one dust token | Probe size ignored the intended position | Size the round trip to paper equity times max trade fraction, or to `safety.honeypot_probe_sol` when that override is set |
 | Honeypot probed through a swap or signing URL | Quote client pointed past the order endpoint | Refuse the URL. The only call is GET `/swap/v2/order` with no taker |
+| Transfer tax passed because the extension could not be read | Undecodable fee data treated as zero | BLIND on transfer tax is KILL. Zero is only for a readable mint with no fee |
 
 ## References
 
