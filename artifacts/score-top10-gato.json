@@ -1,0 +1,188 @@
+{
+  "meta": {
+    "source": "solana_rpc",
+    "fetched_at": "2026-11-16T18:54:53.344142+00:00",
+    "freshness_s": 0.0,
+    "correlation_id": "none",
+    "stale": false,
+    "reason": null
+  },
+  "score": 90,
+  "verdict_recommendation": "CLEAR",
+  "hard_veto": false,
+  "checks": [
+    {
+      "id": "mint_authority",
+      "status": "pass",
+      "value": false,
+      "threshold": "revoked",
+      "weight": "0.15",
+      "reason": "mint authority revoked; supply is fixed"
+    },
+    {
+      "id": "freeze_authority",
+      "status": "pass",
+      "value": false,
+      "threshold": "revoked",
+      "weight": "0.15",
+      "reason": "freeze authority revoked; accounts cannot be frozen"
+    },
+    {
+      "id": "lp_status",
+      "status": "pass",
+      "value": "burned",
+      "threshold": "burned or locked",
+      "weight": "0.15",
+      "reason": "LP mint supply is 0 and the pool records lp_supply=4193388285614; burned, so it meets lp_lock_min_days. pool=5E3dXLXGwmTDCokA51WYYaKttjFZBwqCoyUHBUi5gt2m base_vault=GH91CTk66aLp2eqcjMUFBmYCQzBonGSpFFoqbt7ZJVbv quote_vault=3pcj98B9o7gWRKQs1bwnMYr2Cc3mnRhC4mFpEJMKweud slot=470239622 source=solana_rpc lookup=canonical_pda"
+    },
+    {
+      "id": "transfer_tax",
+      "status": "pass",
+      "value": 0.0,
+      "threshold": "warn>=5 fail>=10",
+      "weight": "0.10",
+      "reason": "token-2022 mint has no TransferFeeConfig; effective bps 0"
+    },
+    {
+      "id": "honeypot",
+      "status": "pass",
+      "value": "198044919",
+      "threshold": "sell outAmount>0",
+      "weight": "0.15",
+      "reason": "jupiter sell route outAmount=198044919 buyOut=2344445079 sellOut=198044919 buyIn=200000000 priceImpact=-0.709430047338245100 retained=0.99022460 buyRoutes=Pump.fun Amm sellRoutes=Pump.fun Amm"
+    },
+    {
+      "id": "top10_concentration",
+      "status": "blind",
+      "value": null,
+      "threshold": null,
+      "weight": "0.15",
+      "reason": "cannot tell whether the dominant holder is the PumpSwap pool; holder sample unreadable after identifying pool=5E3dXLXGwmTDCokA51WYYaKttjFZBwqCoyUHBUi5gt2m base_vault=GH91CTk66aLp2eqcjMUFBmYCQzBonGSpFFoqbt7ZJVbv quote_vault=3pcj98B9o7gWRKQs1bwnMYr2Cc3mnRhC4mFpEJMKweud; concentration not scored"
+    },
+    {
+      "id": "deployer_history",
+      "status": "blind",
+      "value": null,
+      "threshold": null,
+      "weight": "0.10",
+      "reason": "creator not supplied; window unscanned"
+    },
+    {
+      "id": "token2022_extensions",
+      "status": "warn",
+      "value": 2.0,
+      "threshold": "none",
+      "weight": "0.05",
+      "reason": "2 token-2022 extensions present; review transfer hooks"
+    },
+    {
+      "id": "liquidity_depth",
+      "status": "pass",
+      "value": 8863.940570035,
+      "threshold": 10.0,
+      "weight": "0.15",
+      "reason": "liquidity is 8863.9x the intended size; pool=5E3dXLXGwmTDCokA51WYYaKttjFZBwqCoyUHBUi5gt2m base_vault=GH91CTk66aLp2eqcjMUFBmYCQzBonGSpFFoqbt7ZJVbv quote_vault=3pcj98B9o7gWRKQs1bwnMYr2Cc3mnRhC4mFpEJMKweud slot=470239625 source=solana_rpc lookup=canonical_pda"
+    },
+    {
+      "id": "bundler_cluster",
+      "status": "blind",
+      "value": null,
+      "threshold": null,
+      "weight": "0",
+      "reason": "no Phase-3 data source; advisory blind"
+    }
+  ],
+  "blind_checks": [
+    "top10_concentration",
+    "deployer_history",
+    "bundler_cluster"
+  ],
+  "advisory_blind_checks": [
+    "top10_concentration",
+    "deployer_history"
+  ],
+  "failed_required_checks": [],
+  "evidence": [
+    {
+      "check": "mint_authority",
+      "source": "solana_rpc",
+      "slot": null,
+      "fetched_at": "2026-11-16T18:54:53.119707+00:00"
+    },
+    {
+      "check": "freeze_authority",
+      "source": "solana_rpc",
+      "slot": null,
+      "fetched_at": "2026-11-16T18:54:53.119732+00:00"
+    },
+    {
+      "check": "lp_status",
+      "source": "solana_rpc",
+      "slot": 470239622,
+      "fetched_at": "2026-11-16T18:54:53.119741+00:00"
+    },
+    {
+      "check": "top10_concentration",
+      "source": "solana_rpc",
+      "slot": null,
+      "fetched_at": "2026-11-16T18:54:53.119759+00:00"
+    },
+    {
+      "check": "token2022_extensions",
+      "source": "solana_rpc",
+      "slot": null,
+      "fetched_at": "2026-11-16T18:54:53.119776+00:00"
+    },
+    {
+      "check": "liquidity_depth",
+      "source": "solana_rpc",
+      "slot": 470239625,
+      "fetched_at": "2026-11-16T18:54:53.119787+00:00"
+    },
+    {
+      "check": "transfer_tax",
+      "source": "solana_rpc",
+      "slot": 470239625,
+      "fetched_at": "2026-11-16T18:54:53.130612+00:00"
+    },
+    {
+      "check": "honeypot",
+      "source": "https://api.jup.ag/swap/v2/order",
+      "slot": null,
+      "fetched_at": "2026-11-16T18:54:53.343822+00:00"
+    },
+    {
+      "check": "bundler_cluster",
+      "source": "unwired",
+      "slot": null,
+      "fetched_at": "2026-11-16T18:54:53.343843+00:00"
+    }
+  ],
+  "thresholds_used": {
+    "transfer_tax_hard_fail_pct": 10.0,
+    "transfer_tax_warn_pct": 5.0,
+    "top10_concentration_warn_pct": 20.0,
+    "top10_concentration_fail_pct": 25.0,
+    "liquidity_multiple_min": 10.0,
+    "liquidity_multiple_recommended": 20.0,
+    "lp_lock_min_days": 180.0,
+    "creator_share_veto": 0.25,
+    "top5_share_veto": 0.8,
+    "kill_below_score": 40.0,
+    "conditional_below_score": 70.0
+  },
+  "public_rpc_vault_balance": {
+    "endpoint": "https://api.mainnet-beta.solana.com",
+    "getTokenLargestAccounts": "refused with HTTP 429 and x-ratelimit-method-limit 0 on the free tier, so the check is BLIND and was not scored",
+    "base_vault": "GH91CTk66aLp2eqcjMUFBmYCQzBonGSpFFoqbt7ZJVbv",
+    "vault_amount": "21145779958335",
+    "supply_amount": "986898764104521",
+    "vault_pct_of_supply": 2.1426,
+    "non_vault_remainder_pct": 97.8574,
+    "methods": [
+      "getTokenSupply",
+      "getTokenAccountBalance"
+    ],
+    "note": "The base vault is 2.1426% of supply. Enumerated top-10 after excluding it was not available. The check did not treat this vault as a FAIL."
+  }
+}

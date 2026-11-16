@@ -185,8 +185,58 @@ def check_lp_status(lp: dict[str, Any]) -> CheckResult:
     return _lp_row("blind", value=stage, reason=reason)
 
 
+def _joined(parts: list[str]) -> str:
+    if not parts:
+        return ""
+    return "; " + "; ".join(parts)
+
+
+def _excluded_phrase(top: dict[str, Any]) -> str:
+    exclusions = top.get("exclusions")
+    if not isinstance(exclusions, list):
+        return ""
+    rendered: list[str] = []
+    for item in exclusions:
+        if not isinstance(item, dict):
+            continue
+        address = item.get("address")
+        why = item.get("reason")
+        if isinstance(address, str) and address:
+            because = why if isinstance(why, str) and why else "liquidity account"
+            rendered.append(f"{address} ({because})")
+    if not rendered:
+        return ""
+    return "excluded " + ", ".join(rendered)
+
+
+def _pool_phrase(top: dict[str, Any]) -> str:
+    parts: list[str] = []
+    for key in ("pool", "base_vault", "quote_vault"):
+        value = top.get(key)
+        if isinstance(value, str) and value:
+            parts.append(f"{key}={value}")
+    lookup = top.get("pool_lookup")
+    if isinstance(lookup, str) and lookup:
+        parts.append(lookup)
+    return "; ".join(parts)
+
+
+def _top10_detail(top: dict[str, Any]) -> str:
+    return _joined([part for part in (_excluded_phrase(top), _pool_phrase(top)) if part])
+
+
 def check_top10_concentration(top: dict[str, Any], thresholds: SafetyThresholds) -> CheckResult:
-    """Fail/warn/pass the top-10 supply share against configured pcts."""
+    """Fail/warn/pass the top-10 supply share. A blind reason is not a score."""
+    blind = top.get("blind_reason")
+    if isinstance(blind, str) and blind.strip():
+        return CheckResult(
+            id="top10_concentration",
+            status="blind",
+            value=None,
+            threshold=None,
+            weight=Decimal("0.15"),
+            reason=blind.strip(),
+        )
     share = Decimal(str(top.get("top10_share", "0"))) * Decimal(100)
     pct = float(share)
     status: Literal["fail", "warn", "pass"]
@@ -202,7 +252,7 @@ def check_top10_concentration(top: dict[str, Any], thresholds: SafetyThresholds)
         value=pct,
         threshold=thresholds.top10_concentration_fail_pct,
         weight=Decimal("0.15"),
-        reason=f"top-10 holders own {pct:.2f}% of supply",
+        reason=f"top-10 holders own {pct:.2f}% of supply{_top10_detail(top)}",
     )
 
 

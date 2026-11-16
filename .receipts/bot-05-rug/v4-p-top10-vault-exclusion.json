@@ -1,0 +1,37 @@
+{
+  "task_id": "top10-vault-exclusion",
+  "bot": "bot-05-rug",
+  "branch": "cursor/top10-vault-exclusion-7510",
+  "purpose": "Exclude the PumpSwap base vault and pool-owned token accounts from top10_concentration, and stay BLIND when the pool or the holder sample cannot be read. Paper only. No live execution, live gate, signing, or wallet change.",
+  "commands": [
+    {
+      "cmd": "make lint typecheck test",
+      "exit_code": 0,
+      "output_tail": "ruff clean; mypy Success: no issues found in 239 source files; pytest coverage 91.05% (floor 89.9%)"
+    },
+    {
+      "cmd": "uv run pytest -q tests/tools/safety/test_top10_vault.py tests/tools/safety/test_score_report.py tests/safety/test_blind_advisory.py",
+      "exit_code": 0,
+      "output_tail": "44 passed"
+    },
+    {
+      "cmd": "uv run python /tmp/score_top10_demo.py",
+      "exit_code": 0,
+      "output_tail": "TOGO and GATO top10 BLIND; reasons name base vaults H7E9Pp... and GH91CT... because getTokenLargestAccounts is refused"
+    }
+  ],
+  "claims": [
+    {"claim": "make lint, make typecheck, and make test exited 0 at 91.05% coverage", "evidence_command_index": 0},
+    {"claim": "graduated vault exclusion, open-curve exclusion, lookup-failure BLIND, and whale FAIL are pinned", "evidence_command_index": 1},
+    {"claim": "public-RPC score reports for TOGO and GATO were saved under artifacts/score-top10-*.json", "evidence_command_index": 2}
+  ],
+  "unverified": [
+    "api.mainnet-beta.solana.com free tier returns HTTP 429 with x-ratelimit-method-limit 0 for getTokenLargestAccounts, so the live check did not enumerate holders or emit a scored top-10 percent.",
+    "Vault shares in the artifacts' public_rpc_vault_balance notes come from getTokenSupply and getTokenAccountBalance, not from the scored check.",
+    "make audit, docker compose, and ci/gates/run_all.py were not run.",
+    "The bonding-curve layout remains ASSUMED. The PumpSwap tail after offset 244 remains ASSUMED and unused.",
+    "Live trading was not started. No live adapter, signer, wallet, or live-gate file was edited.",
+    "approved_by is not set. The executor does not approve its own work."
+  ],
+  "rollback_plan": "Revert this pull request. top10_concentration goes back to scoring the raw largest-accounts sample, including the PumpSwap base vault. The exclusion module, tests, changelog line, risk-policy paragraph, and score-top10 artifacts leave with the revert. No ledger, live gate, or wallet state changes."
+}
