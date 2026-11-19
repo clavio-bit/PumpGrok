@@ -40,10 +40,10 @@ from pumpgrok.tools._common import SOLANA_RPC_SOURCE, MintStr, meta_now, utcnow
 from pumpgrok.tools.market.liquidity import LiquidityIn, run_liquidity
 from pumpgrok.tools.onchain.authorities_tool import AuthoritiesIn, run_authorities
 from pumpgrok.tools.onchain.deployer_history import DeployerHistoryIn, run_deployer_history
+from pumpgrok.tools.onchain.holder_exclusions import run_concentration
 from pumpgrok.tools.onchain.lp_status import LpStatusIn, run_lp_status
 from pumpgrok.tools.onchain.rpc import RpcClient
 from pumpgrok.tools.onchain.token_metadata import TokenMetadataIn, run_token_metadata
-from pumpgrok.tools.onchain.top_holders import TopHoldersIn, run_top_holders
 from pumpgrok.tools.safety.checks import (
     ADVISORY_IDS,
     CHECK_IDS,
@@ -236,8 +236,11 @@ async def _read_all(
         if {"token2022_extensions", "honeypot"} & needed
         else None
     )
+    # Curve account and PumpSwap base vault are removed before the share is
+    # scored. A failed pool lookup returns blind_reason and a zero share, so
+    # the unread vault cannot fail the check or trip the top-5 veto.
     top = (
-        await _fetch(run_top_holders(TopHoldersIn(mint=inp.mint), rpc))
+        await _fetch(run_concentration(inp.mint, inp.curve_account, rpc))
         if "top10_concentration" in needed
         else None
     )
