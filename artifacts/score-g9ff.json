@@ -1,0 +1,77 @@
+{
+  "mint": "G9FFfstBYuh2N6Us5iybQQGDQXG8m9D7grYoMqefpump",
+  "curve": "Eid76LG4gKdDfYmtEywjKPvVQD34zq3WU64UrmWuPj1b",
+  "kind": "open",
+  "quote_is_sol": true,
+  "complete": false,
+  "score": 70,
+  "verdict_recommendation": "KILL",
+  "blind_checks": [
+    "top10_concentration",
+    "bundler_cluster"
+  ],
+  "failed_required_checks": [],
+  "advisory_blind_checks": [],
+  "checks": [
+    {
+      "id": "mint_authority",
+      "status": "pass",
+      "value": false,
+      "reason": "mint authority revoked; supply is fixed"
+    },
+    {
+      "id": "freeze_authority",
+      "status": "pass",
+      "value": false,
+      "reason": "freeze authority revoked; accounts cannot be frozen"
+    },
+    {
+      "id": "lp_status",
+      "status": "pass",
+      "value": "not_migrated",
+      "reason": "bonding curve not migrated; bonding progress 0.43%; no AMM LP to lock"
+    },
+    {
+      "id": "transfer_tax",
+      "status": "pass",
+      "value": 0.0,
+      "reason": "token-2022 mint has no TransferFeeConfig; effective bps 0"
+    },
+    {
+      "id": "honeypot",
+      "status": "pass",
+      "value": "26127407",
+      "reason": "jupiter sell route outAmount=26127407 buyOut=925609234417 sellOut=26127407 buyIn=26889455 priceImpact=-1.58511790869900400 retained=0.97165997 buyRoutes=Pump.fun sellRoutes=Pump.fun"
+    },
+    {
+      "id": "top10_concentration",
+      "status": "blind",
+      "value": null,
+      "reason": "holder sample unreadable"
+    },
+    {
+      "id": "deployer_history",
+      "status": "warn",
+      "value": 11.0,
+      "reason": "creator has launched 11 tokens in the window; serial-launcher caution"
+    },
+    {
+      "id": "token2022_extensions",
+      "status": "warn",
+      "value": 2.0,
+      "reason": "2 token-2022 extensions present; review transfer hooks"
+    },
+    {
+      "id": "liquidity_depth",
+      "status": "warn",
+      "value": 13.469367192455184,
+      "reason": "liquidity is 13.5x the intended size; liquidity is bonding-curve real_sol reserves"
+    },
+    {
+      "id": "bundler_cluster",
+      "status": "blind",
+      "value": null,
+      "reason": "no Phase-3 data source; advisory blind"
+    }
+  ]
+}

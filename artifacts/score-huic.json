@@ -1,0 +1,78 @@
+{
+  "mint": "HuicCrxFvSEEhMud5DsAd8E7n2S5wsJLJKQZZ7Popump",
+  "curve": "8Zih7Tx3ZpicAKnYZVA4ajZcnfHqcQEkRAbojKrHEBdW",
+  "kind": "open",
+  "quote_is_sol": false,
+  "complete": false,
+  "score": 80,
+  "verdict_recommendation": "KILL",
+  "blind_checks": [
+    "top10_concentration",
+    "liquidity_depth",
+    "bundler_cluster"
+  ],
+  "failed_required_checks": [],
+  "advisory_blind_checks": [],
+  "checks": [
+    {
+      "id": "mint_authority",
+      "status": "pass",
+      "value": false,
+      "reason": "mint authority revoked; supply is fixed"
+    },
+    {
+      "id": "freeze_authority",
+      "status": "pass",
+      "value": false,
+      "reason": "freeze authority revoked; accounts cannot be frozen"
+    },
+    {
+      "id": "lp_status",
+      "status": "pass",
+      "value": "not_migrated",
+      "reason": "bonding curve not migrated; quote mint is not SOL, so progress is not a SOL percent; no AMM LP to lock"
+    },
+    {
+      "id": "transfer_tax",
+      "status": "pass",
+      "value": 0.0,
+      "reason": "token-2022 mint has no TransferFeeConfig; effective bps 0"
+    },
+    {
+      "id": "honeypot",
+      "status": "pass",
+      "value": "25778635",
+      "reason": "jupiter sell route outAmount=25778635 buyOut=486043767081 sellOut=25778635 buyIn=26889455 priceImpact=-3.290470709059796500 retained=0.95868938 buyRoutes=Quantum,Scorch,Pump.fun sellRoutes=Pump.fun,PancakeSwap"
+    },
+    {
+      "id": "top10_concentration",
+      "status": "blind",
+      "value": null,
+      "reason": "holder sample unreadable"
+    },
+    {
+      "id": "deployer_history",
+      "status": "warn",
+      "value": 330.0,
+      "reason": "creator has launched 330 tokens in the window; serial-launcher caution"
+    },
+    {
+      "id": "token2022_extensions",
+      "status": "warn",
+      "value": 2.0,
+      "reason": "2 token-2022 extensions present; review transfer hooks"
+    },
+    {
+      "id": "liquidity_depth",
+      "status": "blind",
+      "value": null,
+      "reason": "quote mint pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn is not SOL; real reserves are not lamports"
+    },
+    {
+      "id": "bundler_cluster",
+      "status": "blind",
+      "value": null,
+      "reason": "no Phase-3 data source; advisory blind"
+    }
+  ]
+}

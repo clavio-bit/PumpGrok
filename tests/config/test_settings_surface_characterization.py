@@ -42,8 +42,10 @@ PRE_V4_FIELDS: tuple[str, ...] = (
 
 PINNED_SECTION_DIGESTS: dict[str, str] = {
     "execution": "717144ed733a9c81a960bc445d94f19a79e7677cdc6b0070847d659e51f5fb2c",
-    "risk": "7b73f8ebece3612a00b973f1f402c9174c6b43bcaa4cb367bf6acf0eb3ee723e",
-    "limits": "005a5d70a24265958cef1441c5aa0d0ced919986defa941091361598e51c5557",
+    # 2026-11-19: paper_bankroll_usdc (100 USDC) beside the SOL ledger equity.
+    "risk": "4ab902322679bc114bb6283748258eabd443f6e4129c75fee95f93d887adcbf2",
+    # 2026-11-19: max_slippage_bps default 500 (operator risk-limits note).
+    "limits": "b65d1bb87f845914ad67a7c4c4aff253c1fb6c8f5f6a604509694333a3711ed2",
     "replay": "4e949265d09c7f086f0568a752a46ffc91eafba9541f0cdf453eb53db5d230ba",
     "live": "d06968acdda3fe67966ab7d79cfac8cf03cb7c60bf803972a661296ff021bfe2",
     "platform": "ffec8c9d9df99d776e4188e75abbae89acd4fe967e45e5a7d4b7b3fc6213cc22",
@@ -54,10 +56,12 @@ PINNED_SECTION_DIGESTS: dict[str, str] = {
     "grok": "2e4c9dc6ad91eb80b07531dd3ad66ca5386430bc3c56ee3cba0407903747b00b",
     "jupiter": "e31754b27eae6e4697ea81a6dc9cf0f9570cd034b5c52c78b7a8eaaf675a043b",
     "filter": "72883161750cfff0c4689337fd3b1814ddee7e64ccf3844b49dde34b7520ef66",
-    # 2026-11-13: safety.honeypot_probe_sol (optional override; None derives the position).
-    "safety": "716552c2bd1fbdacc4b0916945e87a3adf7e1f1010823d722f657cce4366458d",
+    # 2026-11-19: honeypot size derives from the USDC bankroll at a live SOL price.
+    # 2026-11-19: position watch interval and per-poll cap.
+    "safety": "f2c021c1de1ae6382467cb8b4cce960adb9ff71b0ea4efbbc3028699d1efcf53",
     "scoring": "402e94eb3d94528d8823e3682ad940df7f9abc18800edd8da3ac86d5856cde08",
-    "exits": "71ec150216dbc1ff0105b35e104b7dae4a64ce3845bb06c88f5c3599e22bfff9",
+    # 2026-11-19: SL 20, TP 60, trail 25, hold 1800s (operator risk-limits note).
+    "exits": "e200c162957e24bf42cf262f6e76fd36010c857040c175ceee2d58b08817224e",
     "ops": "bb1a378d59815ba72e2fc99571cb1e87732b7bee7e14af1e0373344a78679f7a",
     "notify": "c5b4befdfaeb1a71533fbc2011c77862f2774263ac60a16b074a53078c32dc7a",
     "health": "c88a6d6abdcf0ee28c1ae470e1fcec57c4579ab2ea866fce7f9d1f6a02f4cf95",

@@ -10,9 +10,10 @@ from __future__ import annotations
 import base64
 import importlib.util
 import json
-import struct
 from pathlib import Path
 from typing import Any
+
+from pumpgrok.tools.onchain.curve_layout import encode_curve_fixture
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PROBE = REPO_ROOT / "scripts" / "probe_curve_layout.py"
@@ -24,18 +25,16 @@ _SPEC.loader.exec_module(probe_mod)
 
 ACCOUNT = "9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin"
 ENDPOINT = "https://api.mainnet-beta.solana.com"
-CURVE = struct.Struct("<8sQQQQQB")
 
 
 def _rpc_payload() -> dict[str, Any]:
-    raw = CURVE.pack(
-        bytes.fromhex(probe_mod.EXPECTED_DISCRIMINATOR_HEX),
-        30_000_000_000,
-        1_073_000_000,
-        0,
-        0,
-        1_000_000_000,
-        0,
+    raw = encode_curve_fixture(
+        virtual_sol_reserves_lamports=30_000_000_000,
+        virtual_token_reserves_units=1_073_000_000_000_000,
+        real_sol_reserves_lamports=0,
+        real_token_reserves_units=793_100_000_000_000,
+        total_supply_units=1_000_000_000_000_000,
+        complete=False,
     )
     value = {
         "owner": probe_mod.EXPECTED_PROGRAM_ID,

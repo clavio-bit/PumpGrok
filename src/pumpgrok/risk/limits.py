@@ -23,7 +23,8 @@ class EngineLimits(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     min_trade_lamports: int = Field(default=10_000_000, ge=1)
-    max_slippage_bps: int = Field(default=300, ge=0, le=10_000)
+    # Operator risk-limits note, 2026-11-19: 5 percent. PUMPGROK_LIMITS__MAX_SLIPPAGE_BPS.
+    max_slippage_bps: int = Field(default=500, ge=0, le=10_000)
     one_position_per_creator: bool = True
     daily_loss_basis: Literal["total", "realized"] = "total"
     blind_max_s: float = Field(default=300.0, ge=0)

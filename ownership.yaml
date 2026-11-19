@@ -465,6 +465,9 @@ ownership:
   - pattern: "var/**"
     owner: bot-02-risk
 
+  - pattern: "artifacts/**"
+    owner: bot-02-risk
+
   # --- Always LAST (programming-desk/ownership.yaml:431-433) ---------------
   - pattern: "**/*.proto"
     owner: bot-02-risk

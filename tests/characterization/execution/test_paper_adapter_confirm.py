@@ -319,7 +319,7 @@ cancel_sell_during_latency f60b970e4b0ff355468e08a4a2d3e4cef705094575416d08e7e18
 recheck_refused_sell fa20a328b104216d94bc8c58318daaab35ac3003824229b3f9122cb1f046125a
 tx_dropped_sell ddb19f56cfa14d8fdb78d4f1ea4cff4d88b3ba5af7d52b56004dc84d1b025819
 buy_no_reserves_confirming 3697af27688006932f120ced452150c0a16a381eb2640766f2e4d7525e184045
-buy_data_unavailable_confirming 15f3111c28551bf849491e6b1b48674526c5c3c696a16b61d3b1aaba0d4adac6
+buy_data_unavailable_confirming 684fdc433a6141f8d4cc2177504fb684d568ce3214df9007dd748ca5e7c0c9bf
 buy_post_graduation_confirming 2e942b6683832b8ad3a8b483bdaf5910e78b613b82bf9927391c0dda7a4f3233
 """
 PINS: dict[str, str] = dict(line.split() for line in _PIN_TABLE.strip().splitlines())
@@ -378,10 +378,10 @@ async def test_buy_confirmation_refuses_missing_reserves(tmp_path: Path) -> None
     assert trace["outcome"]["stage"] == "CONFIRMING"
 
 
-async def test_buy_confirmation_refuses_assumed_layout_reads(tmp_path: Path) -> None:
+async def test_verified_layout_confirms_an_rpc_snapshot(tmp_path: Path) -> None:
     trace = await scn_buy_data_unavailable_confirming(tmp_path)
-    assert trace["outcome"]["reason"] == "data_unavailable"
-    assert trace["outcome"]["stage"] == "CONFIRMING"
+    assert "fill" in trace["outcome"]
+    assert trace["outcome"]["fill"]["filled_lamports"] > 0
 
 
 async def test_buy_confirmation_refuses_a_completed_curve(tmp_path: Path) -> None:

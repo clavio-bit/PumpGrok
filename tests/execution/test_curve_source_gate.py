@@ -1,7 +1,6 @@
 """Entry gate checks each snapshot's own source; exposure follows reducer cost basis.
 
-RPC-derived reserves are refused with ``data_unavailable`` while the curve
-layout is ASSUMED, decided per snapshot rather than by a constructor value.
+The curve prefix is VERIFIED, so an RPC snapshot may price a paper fill.
 Exposure after a partial sell reports the cost basis the reducer keeps.
 """
 
@@ -12,14 +11,12 @@ import random
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 from pumpgrok.core.adapter import Fill, OrderRequest, Side
 from pumpgrok.core.ids import IdFactory
 from pumpgrok.core.risk_budget import RiskBudget
-from pumpgrok.execution.paper_adapter import CurveSnapshot, OrderRejectedError, PaperAdapter
+from pumpgrok.execution.paper_adapter import CurveSnapshot, PaperAdapter
 from pumpgrok.ledger.store import LedgerStore
 from pumpgrok.replay.clock import FixtureClock
 from pumpgrok.replay.rng import make_rng
@@ -113,30 +110,22 @@ async def _place(
     return await task
 
 
-async def test_rpc_entry_snapshot_is_refused_at_accepted(tmp_path: Path) -> None:
+async def test_verified_rpc_entry_snapshot_fills(tmp_path: Path) -> None:
     adapter, clock = _harness(tmp_path, [_snap("rpc"), _snap("rpc")])
     request = _request(adapter, TICKET, side=Side.BUY, units=None)
-    with pytest.raises(OrderRejectedError) as exc_info:
-        await _place(adapter, clock, request, seat="bot-04-sniper")
-    assert exc_info.value.reason == "data_unavailable"
-    rejected = adapter._store.read(types=["OrderRejected"], limit=None)
-    assert [row["payload"]["stage"] for row in rejected] == ["ACCEPTED"]
-    assert rejected[0]["payload"]["reason"] == "data_unavailable"
+    fill = await _place(adapter, clock, request, seat="bot-04-sniper")
+    assert fill.filled_lamports > 0
     kinds = [e["type"] for e in adapter._store.read(limit=None)]
-    assert "OrderPlaced" not in kinds
-    assert "FillRecorded" not in kinds
+    assert "FillRecorded" in kinds
 
 
-async def test_rpc_confirmation_snapshot_is_refused_at_confirming(tmp_path: Path) -> None:
+async def test_verified_rpc_confirmation_snapshot_fills(tmp_path: Path) -> None:
     adapter, clock = _harness(tmp_path, [_snap("fixture"), _snap("rpc")])
     request = _request(adapter, TICKET, side=Side.BUY, units=None)
-    with pytest.raises(OrderRejectedError) as exc_info:
-        await _place(adapter, clock, request, seat="bot-04-sniper")
-    assert exc_info.value.reason == "data_unavailable"
-    rejected = adapter._store.read(types=["OrderRejected"], limit=None)
-    assert [row["payload"]["stage"] for row in rejected] == ["CONFIRMING"]
+    fill = await _place(adapter, clock, request, seat="bot-04-sniper")
+    assert fill.filled_lamports > 0
     kinds = [e["type"] for e in adapter._store.read(limit=None)]
-    assert "FillRecorded" not in kinds
+    assert "FillRecorded" in kinds
 
 
 async def test_exposure_after_partial_sell_matches_reducer_cost_basis(tmp_path: Path) -> None:

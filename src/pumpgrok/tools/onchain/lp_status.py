@@ -1,7 +1,8 @@
 """onchain.lp_status: curve completion, then a PumpSwap pool when the curve is done.
 
-An open bonding curve has no LP to lock. A complete curve, or a curve
-account that is missing or not the ASSUMED layout, is scored from the
+An open bonding curve has not migrated: there is no AMM LP to lock, and
+the report carries bonding progress when the quote is SOL. A complete
+curve, or a curve account that does not decode, is scored from the
 PumpSwap pool when one exists. No PumpSwap pool is not a pass: other AMMs
 stay blind. This module does not sign.
 """
@@ -9,6 +10,7 @@ stay blind. This module does not sign.
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Any, Literal
 
 from pydantic import Field
@@ -21,6 +23,7 @@ from pumpgrok.tools._common import J5, SOLANA_RPC_SOURCE, MintStr, meta_now
 from pumpgrok.tools.onchain.curve_layout import (
     CurveDecodeError,
     CurveState,
+    curve_progress,
     decode_curve_account_base64,
 )
 from pumpgrok.tools.onchain.pumpswap_pool import lookup_pumpswap_pool
@@ -38,7 +41,11 @@ class LpStatusOut(ToolOutput):
     """Stage plus completion flag; LP-mint fields are unwired (null)."""
 
     stage: Literal["bonding_curve", "graduated", "pumpswap", "unknown"]
+    migration: Literal["not_migrated", "migrated", "unknown"] | None = None
     curve_complete: bool | None = None
+    bonding_progress_pct: Decimal | None = None
+    quote_mint: str | None = None
+    quote_is_sol: bool | None = None
     lp_mint: str | None = None
     lp_burned_pct: float | None = None
     lp_locked_pct: float | None = None
@@ -95,10 +102,25 @@ async def _curve_state(inp: LpStatusIn, rpc: RpcClient) -> CurveState | None:
         return None
 
 
-def _open_curve(inp: LpStatusIn, rpc: RpcClient) -> dict[str, Any]:
+def _progress_pct(state: CurveState) -> Decimal | None:
+    if not state.quote_is_sol:
+        return None
+    try:
+        ratio = curve_progress(state)
+    except CurveDecodeError:
+        return None
+    return (ratio * Decimal(100)).quantize(Decimal("0.01"))
+
+
+def _open_curve(inp: LpStatusIn, rpc: RpcClient, state: CurveState) -> dict[str, Any]:
     return {
         "stage": "bonding_curve",
+        "migration": "not_migrated",
         "curve_complete": False,
+        "bonding_progress_pct": _progress_pct(state),
+        "quote_mint": state.quote_mint,
+        "quote_is_sol": state.quote_is_sol,
+        "creator": state.creator,
         "lp_mint": None,
         "lp_burned_pct": None,
         "lp_locked_pct": None,
@@ -183,6 +205,7 @@ async def _pumpswap_payload(
     if pool is None:
         return {
             "stage": "unknown",
+            "migration": "unknown",
             "curve_complete": complete,
             "lp_mint": None,
             "lp_burned_pct": None,
@@ -212,6 +235,7 @@ async def _pumpswap_payload(
         detail = f"{detail} {lookup.reason}"
     return {
         "stage": "pumpswap",
+        "migration": "migrated" if complete else "unknown",
         "curve_complete": complete,
         "lp_mint": pool.lp_mint,
         "lp_burned_pct": None,
@@ -237,7 +261,7 @@ async def run_lp_status(inp: LpStatusIn, rpc: RpcClient) -> dict[str, Any]:
     """Score an open curve, or the PumpSwap pool once the curve is done or unreadable."""
     state = await _curve_state(inp, rpc)
     if state is not None and not state.complete:
-        return LpStatusOut.model_validate(_open_curve(inp, rpc)).model_dump()
+        return LpStatusOut.model_validate(_open_curve(inp, rpc, state)).model_dump()
     complete = None if state is None else state.complete
     payload = await _pumpswap_payload(inp, rpc, complete)
     return LpStatusOut.model_validate(payload).model_dump()

@@ -58,7 +58,7 @@ Engine constants that are not budget keys (home: `[risk.engine]` in `risk/limits
 |---|---|---|---|---|---|
 | `risk.engine.min_trade_sol` | 0.01 | SOL | REVIEW | vendor `MIN_TRADE_SOL` (`vendor/grokbot-pumpfun/src/risk.py:36`) | `size_too_small` (INV-R-07) |
 | `risk.engine.one_position_per_creator` | true | bool | REVIEW | vendor `FilterConfig.one_position_per_creator` (`models.py:340`) | `creator_already_open` (INV-R-07) |
-| `risk.engine.max_slippage_bps` | 300 | bps | REVIEW | upper bound on the per-ticket `max_slippage_bps` a human or rule may request | config validation (INV-C-05) |
+| `risk.engine.max_slippage_bps` | 500 | bps | operator risk-limits note 2026-11-19 | upper bound on the per-ticket `max_slippage_bps` a human or rule may request. `PUMPGROK_LIMITS__MAX_SLIPPAGE_BPS` overrides it | config validation (INV-C-05) |
 | `risk.engine.daily_loss_basis` | `total` | enum | REVIEW | total = realized + unrealized is conservative; `realized` is the vendor behaviour (`risk.py:122-136`) | INV-R-04 |
 | `risk.kill_switch.flatten` | false | bool | REVIEW | flatten is opt-in per set (`flatten_request` / `KILL FLATTEN`) so a false alarm does not realise losses | INV-R-02 |
 | `risk.breakers.data_stale_s` / `_cooldown_s` | 120 / 60 | s | REVIEW | docs/design/paper-engine.md:569; vendor `STALL_SECONDS = 600` (`pipeline.py:62`) is for the launch stream only | `breaker_open` (INV-R-09) |
@@ -66,15 +66,15 @@ Engine constants that are not budget keys (home: `[risk.engine]` in `risk/limits
 | `risk.breakers.loss_velocity_fraction` / `_cooldown_s` | 0.02 per 15 min / 1800 | fraction / s | REVIEW | docs/design/paper-engine.md:570 | `breaker_open` (INV-R-09) |
 | `risk.breakers.exec_errors_n` / `_window_s` / `_cooldown_s` | 3 / 600 / 900 | count / s / s | REVIEW | docs/design/paper-engine.md:571 | `breaker_open` (INV-R-09) |
 | `ledger.mtm_interval_s` | 60 | s | REVIEW | MTM cadence that feeds equity, halts and loss velocity (docs/design/paper-engine.md:186) | INV-R-04 |
-| `exit.stop_loss_pct` | 30 | pct of entry | REVIEW | vendor `RiskConfig.stop_loss_pct` (`models.py:323`) | `tests/characterization/test_vendor_ports.py` |
-| `exit.take_profit_pct` | 120 | pct of entry | REVIEW | vendor `:326` | same |
-| `exit.trailing_stop_pct` | 35 | pct from peak, only above entry | REVIEW | vendor `:327` | same |
-| `exit.max_hold_s` | 3600 | s | REVIEW | vendor `:328` | same |
+| `exit.stop_loss_pct` | 20 | pct of entry | operator risk-limits note 2026-11-19 | SL -20%. `PUMPGROK_EXITS__STOP_LOSS_PCT` overrides it | `tests/characterization/test_vendor_config.py` |
+| `exit.take_profit_pct` | 60 | pct of entry | operator risk-limits note 2026-11-19 | TP +60% | same |
+| `exit.trailing_stop_pct` | 25 | pct from peak, only above entry | operator risk-limits note 2026-11-19 | trail 25% | same |
+| `exit.max_hold_s` | 1800 | s | operator risk-limits note 2026-11-19 | max hold 1800 s | same |
 | `exit.poll_s` | 15 | s | REVIEW | vendor `stop_loss_poll_seconds` (`:324`); the exit seat cadence | docs/design/paper-engine.md:631 |
 | `safety.thresholds.*` | per docs/TOOL_CATALOG.md:245-249 | mixed | REVIEW | ten-check list `agents/risk.md:40-49` | `safety.score_report` tests (n3) |
 | `signal.require_llm` | false | bool | REVIEW | paper evaluation continues on rule-based scoring when x.ai is down; `true` makes the desk observe-only for buys without the LLM (replay never falls back, R27) | INV-R-34 |
 
-Derived consequence the human must accept with the conservative posture: with 10 SOL equity the per-order size is 0.2 SOL, so a full fill needs a curve with at least 10 SOL of virtual reserve and the desk will see many partial fills and `below_liquidity_floor` rejections on the youngest curves. That is intended (fewer, cleaner trades); the daily report's "Rejected signals" section (docs/design/paper-engine.md:843) makes the rate visible.
+Sizing uses `risk.paper_bankroll_usdc` (default 100) times `max_trade_fraction` (0.02), converted to lamports at a live SOL/USDC quote. That is 2 USDC, not 0.2 SOL. A missing price is BLIND and is not replaced with the 10 SOL ledger equity. The operator daily-loss halt is 5 percent of that same 100 USDC bankroll, using realised plus unrealised P&L in USDC. A missing price refuses new entries. `paper_equity_sol` (default 10) remains the replay ledger equity. The mapping of every rule to code and tests is `docs/RISK_PARITY.md`.
 
 ### 2.3 What a limit breach looks like
 

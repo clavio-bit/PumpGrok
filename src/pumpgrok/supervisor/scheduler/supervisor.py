@@ -90,6 +90,8 @@ class Supervisor:
         budget: RiskBudget | None = None,
         cycle_observer: Callable[[str, float, str], None] | None = None,
         seat_cadences: Mapping[str, float] | None = None,
+        position_watch: Callable[[float], Awaitable[Any]] | None = None,
+        watch_interval_s: float = 30.0,
     ) -> None:
         unknown = set(cycles) - set(ROSTER)
         if unknown:
@@ -108,6 +110,9 @@ class Supervisor:
         self._health_path = Path(health_path) if health_path is not None else None
         self._risk = risk
         self._budget = budget if budget is not None else RiskBudget()
+        self._position_watch = position_watch
+        self._watch_interval_s = watch_interval_s
+        self._last_position_watch: float | None = None
         self.observe_only = ObserveOnly()
         self.tasks: dict[str, SeatTask] = {
             seat: SeatTask(
@@ -276,6 +281,7 @@ class Supervisor:
         # Replay stays hermetic: its supervisor never reads live kill state.
         if self._risk is not None and self._source != "replay":
             await self._risk.poll_kill_sources()
+        await self._poll_open_positions(now)
         if heartbeats:
             for seat in ROSTER:
                 await self.tasks[seat].check_stale(now)
@@ -289,6 +295,24 @@ class Supervisor:
                 write_health_json(str(self._health_path), self.health_status())
             except OSError as exc:
                 log.warning("health.json write failed: %s", exc)
+
+    async def _poll_open_positions(self, now: float) -> None:
+        """Run the paper position watch when its interval has elapsed.
+
+        ``watch_interval_s`` of 0 asks the hook on every tick. The hook
+        rate-limits itself as well. A hook that raises is logged and does
+        not fail the tick. The hook must only write the paper ledger.
+        """
+        if self._position_watch is None:
+            return
+        last = self._last_position_watch
+        if self._watch_interval_s > 0 and last is not None and now - last < self._watch_interval_s:
+            return
+        self._last_position_watch = now
+        try:
+            await self._position_watch(now)
+        except Exception as exc:
+            log.warning("paper position watch failed: %s", type(exc).__name__)
 
     def _emit_rollover(self, now: float) -> None:
         """Append one ``DailyRollover`` per UTC day, including the first day seen.

@@ -1,7 +1,7 @@
 """market.price: bonding-curve spot price over Solana RPC (TOOL-001, B9).
 
 Reads the curve account with ``getAccountInfo`` (base64) and decodes it with
-the ASSUMED layout in :mod:`pumpgrok.tools.onchain.curve_layout`. No REST
+the verified IDL layout in :mod:`pumpgrok.tools.onchain.curve_layout`. No REST
 fallback and no Jupiter quote path exist in this module (R44, R46, R47).
 """
 
@@ -49,7 +49,7 @@ PRICE_SPEC = ToolSpec(
     name="market.price",
     description=(
         "Spot price of a token in SOL from the on-chain bonding-curve "
-        "reserves (ASSUMED layout); the only price the fill model uses."
+        "reserves (verified IDL layout, SOL quote only); the only price the fill model uses."
     ),
     input_model=PriceIn,
     output_model=PriceOut,

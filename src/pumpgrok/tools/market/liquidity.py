@@ -1,9 +1,12 @@
 """market.liquidity: curve depth, or PumpSwap quote-vault SOL once the curve is done.
 
-An open bonding curve reports its virtual SOL reserve. A complete curve, or
-a curve account that is missing or not the ASSUMED layout, reports the
-PumpSwap pool's WSOL vault balance. No PumpSwap pool is not a number from
-another AMM. This module does not sign.
+An open SOL-quoted bonding curve reports its real SOL reserve (the SOL
+actually deposited, compared with the probe size). Virtual reserves stay
+on the output for the spot price and are not the depth figure. A non-SOL
+quote is unscored: those units are not lamports. A complete curve, or a
+curve account that does not decode, reports the PumpSwap pool's WSOL vault
+balance. No PumpSwap pool is not a number from another AMM. This module
+does not sign.
 """
 
 from __future__ import annotations
@@ -101,15 +104,29 @@ async def _curve_state(inp: LiquidityIn, rpc: RpcClient) -> CurveState | None:
 
 
 def _curve_payload(inp: LiquidityIn, rpc: RpcClient, state: CurveState) -> dict[str, Any]:
-    impact, ratio = _impact(state.virtual_sol_reserves_lamports, inp.order_size_lamports)
+    if not state.quote_is_sol:
+        return _unscored(
+            inp,
+            rpc,
+            f"quote mint {state.quote_mint} is not SOL; real reserves are not lamports",
+            graduated=state.complete,
+        )
+    try:
+        progress = curve_progress(state)
+    except CurveDecodeError as exc:
+        return _unscored(inp, rpc, str(exc), graduated=state.complete)
+    # Depth is real SOL deposited, not the virtual reserve the spot price uses.
+    real = state.real_sol_reserves_lamports
+    impact, ratio = _impact(real, inp.order_size_lamports)
     return {
         "virtual_sol_reserves_lamports": state.virtual_sol_reserves_lamports,
         "virtual_token_reserves_units": state.virtual_token_reserves_units,
-        "liquidity_lamports": state.virtual_sol_reserves_lamports,
-        "curve_progress": curve_progress(state),
+        "liquidity_lamports": real,
+        "curve_progress": progress,
         "price_impact": impact,
         "order_to_liquidity_ratio": ratio,
         "graduated": state.complete,
+        "detail": "liquidity is bonding-curve real_sol reserves",
         "meta": _meta(inp, rpc),
     }
 
@@ -126,7 +143,9 @@ async def _token_amount(rpc: RpcClient, address: str) -> int:
     raise DataStale("pumpswap vault balance malformed")
 
 
-def _unscored(inp: LiquidityIn, rpc: RpcClient, reason: str) -> dict[str, Any]:
+def _unscored(
+    inp: LiquidityIn, rpc: RpcClient, reason: str, *, graduated: bool = True
+) -> dict[str, Any]:
     return {
         "virtual_sol_reserves_lamports": 0,
         "virtual_token_reserves_units": 0,  # pragma: allowlist secret
@@ -134,7 +153,7 @@ def _unscored(inp: LiquidityIn, rpc: RpcClient, reason: str) -> dict[str, Any]:
         "curve_progress": Decimal(0),
         "price_impact": Decimal(0),
         "order_to_liquidity_ratio": Decimal(0),
-        "graduated": True,
+        "graduated": graduated,
         "detail": reason,
         "unscored": True,
         "meta": _meta(inp, rpc),

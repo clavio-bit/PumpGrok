@@ -309,16 +309,25 @@ async def test_execution_url_is_refused_before_any_request() -> None:
     assert order_quote_url_ok(QUOTE_URL)
 
 
-def test_intended_position_defaults_to_two_tenths_of_a_sol() -> None:
+def test_usdc_bankroll_without_a_price_is_unpriced() -> None:
     budget = RiskBudget()
     lamports = intended_probe_lamports(
-        paper_equity_sol=budget.paper_equity_sol,
+        bankroll_usdc=budget.paper_bankroll_usdc,
         max_trade_fraction=budget.max_trade_fraction,
-        override_sol=None,
+        sol_price_usdc=None,
     )
-    assert budget.paper_equity_sol == Decimal("10")
-    assert budget.max_trade_fraction == Decimal("0.02")
-    assert lamports == 200_000_000
+    assert budget.paper_bankroll_usdc == Decimal("100")
+    assert lamports == 0
+
+
+def test_usdc_bankroll_converts_at_the_sol_price() -> None:
+    # 2 USDC at 100 USDC per SOL is 0.02 SOL.
+    lamports = intended_probe_lamports(
+        bankroll_usdc=Decimal("100"),
+        max_trade_fraction=Decimal("0.02"),
+        sol_price_usdc=Decimal("100"),
+    )
+    assert lamports == 20_000_000
 
 
 def test_explicit_probe_sol_overrides_the_derived_size() -> None:

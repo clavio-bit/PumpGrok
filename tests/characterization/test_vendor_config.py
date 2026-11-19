@@ -149,6 +149,7 @@ def test_paper_overlay_carries_eight_risk_keys() -> None:
         "max_trades_per_day",
         "liquidity_floor_multiple",
         "partial_fill_fraction",
+        "paper_bankroll_usdc",
     }
 
 
@@ -216,12 +217,13 @@ def test_scoring_weights_sum_to_one() -> None:
     assert ScoringSettings().timing_cache_seconds == pytest.approx(900.0)
 
 
-def test_exit_thresholds_mirror_vendor() -> None:
+def test_exit_thresholds_match_risk_limits_note() -> None:
+    """Operator risk-limits note, 2026-11-19: SL 20, TP 60, trail 25, hold 1800s."""
     exits = ExitsSettings()
-    assert exits.stop_loss_pct == pytest.approx(30.0)
-    assert exits.take_profit_pct == pytest.approx(120.0)
-    assert exits.trailing_stop_pct == pytest.approx(35.0)
-    assert exits.max_hold_seconds == pytest.approx(3600.0)
+    assert exits.stop_loss_pct == pytest.approx(20.0)
+    assert exits.take_profit_pct == pytest.approx(60.0)
+    assert exits.trailing_stop_pct == pytest.approx(25.0)
+    assert exits.max_hold_seconds == pytest.approx(1800.0)
     assert exits.stop_loss_poll_seconds == pytest.approx(15.0)
 
 

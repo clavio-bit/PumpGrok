@@ -1,0 +1,33 @@
+{
+  "name": "5yk1",
+  "mint": "5yK1F7qMGfZdhwMHrLsW2oi3Bqf63PmZpG4uhGywpump",
+  "kind": "open",
+  "curve": "8x5QEpTCzUbN4Dsfb6f3D75Hh6CoWatbMojq8eLUKDqQ",
+  "account_len": 166,
+  "account_sha256": "27b717a0fb41a32e8655b955899df358c954c249700e54bab3777219b09dee72",
+  "account_b64": "F7f4N2DYrGBgJBat+DMCACXWnMHCCAAAYIwDYWc1AQCt92+nsgMAAACAxqR+jQMAAMdWdlQbn/KP0uXno/TZEdg+L0v9ahFQAgZ4XJX3BpENAAC+Ji8Lgb1T0e8lYyuumbrm9DZhnlNDUL7GcICS9RBPZB4AAAAAAAAAAAB9hH1QAAAAABlncX8AAAAAAHjeLBoQBQAAAAAAAAAAAAAAAAAAAAAAAA==",
+  "owner": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+  "slot": 471439698,
+  "quote_is_sol": false,
+  "quote_mint": "DoGEV7LASBkQbibMc5k5vKnTZoMg423GpJ5QtJEGfm7R",
+  "complete": false,
+  "creator": "ER8bmevm2rZdCsRcCSMh5FPphT38XCL1XuJFy6NAUiPe",
+  "virtual_token_reserves_units": 620093102236768,
+  "virtual_quote_reserves": 9632564958757,
+  "real_token_reserves_units": 340193102236768,
+  "real_quote_reserves": 4065848194989,
+  "real_sol_lamports": 0,
+  "initial_virtual_quote_reserves": 5566716763768,
+  "token_total_supply": 1000000000000000,
+  "creator_fee_bps": 30,
+  "depth": 0,
+  "cross_check": {
+    "dex": {
+      "dex": "pumpfun",
+      "price_usd": "0.000009157",
+      "market_cap_usd": 9157.2,
+      "pair": "8x5QEpTCzUbN4Dsfb6f3D75Hh6CoWatbMojq8eLUKDqQ"
+    },
+    "sol_usd": "74.3786"
+  }
+}

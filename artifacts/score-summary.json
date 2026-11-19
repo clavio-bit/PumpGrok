@@ -1,0 +1,48 @@
+{
+  "sol_usd": "74.3786",
+  "probe_lamports": 26889455,
+  "paid_rpc_provider": "helius",
+  "note": "Public RPC returned HTTP 429 on getTokenLargestAccounts during this capture, so top10_concentration is BLIND. With helius recorded, that BLIND is KILL. bundler_cluster is BLIND by construction and would cap a passing report at CONDITIONAL. Huic and 5yK1 are open curves quoted in another pump token, so liquidity_depth is BLIND instead of a fake SOL number. G9FF liquidity is real SOL versus the 2 USDC probe (13.5x, WARN). G9FF bonding progress is 0.43 percent. TOGO and GATO curves are complete with burned PumpSwap LP.",
+  "reports": [
+    {
+      "mint": "G9FFfstBYuh2N6Us5iybQQGDQXG8m9D7grYoMqefpump",
+      "kind": "open",
+      "score": 70,
+      "verdict_recommendation": "KILL",
+      "failed_required_checks": [],
+      "blind_checks": ["top10_concentration", "bundler_cluster"]
+    },
+    {
+      "mint": "HuicCrxFvSEEhMud5DsAd8E7n2S5wsJLJKQZZ7Popump",
+      "kind": "open",
+      "score": 80,
+      "verdict_recommendation": "KILL",
+      "failed_required_checks": [],
+      "blind_checks": ["top10_concentration", "liquidity_depth", "bundler_cluster"]
+    },
+    {
+      "mint": "5yK1F7qMGfZdhwMHrLsW2oi3Bqf63PmZpG4uhGywpump",
+      "kind": "open",
+      "score": 80,
+      "verdict_recommendation": "KILL",
+      "failed_required_checks": [],
+      "blind_checks": ["top10_concentration", "liquidity_depth", "bundler_cluster"]
+    },
+    {
+      "mint": "HcJGYDM5bS19fDSMUHNcH6wKP68kmHksNmXsTW2Wpump",
+      "kind": "graduated",
+      "score": 80,
+      "verdict_recommendation": "KILL",
+      "failed_required_checks": [],
+      "blind_checks": ["top10_concentration", "bundler_cluster"]
+    },
+    {
+      "mint": "HsprHxBRgiVaQdRf3TnKNuZZtaX9JUSPgMFdAkk6pump",
+      "kind": "graduated",
+      "score": 80,
+      "verdict_recommendation": "KILL",
+      "failed_required_checks": [],
+      "blind_checks": ["top10_concentration", "bundler_cluster"]
+    }
+  ]
+}

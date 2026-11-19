@@ -54,10 +54,11 @@ class ExitsSettings(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    stop_loss_pct: float = Field(default=30.0, ge=0)
-    take_profit_pct: float = Field(default=120.0, ge=0)
-    trailing_stop_pct: float = Field(default=35.0, ge=0)
-    max_hold_seconds: float = Field(default=3600.0, ge=0)
+    # Operator risk-limits note, 2026-11-19: SL -20%, TP +60%, trail 25%, hold 1800s.
+    stop_loss_pct: float = Field(default=20.0, ge=0)
+    take_profit_pct: float = Field(default=60.0, ge=0)
+    trailing_stop_pct: float = Field(default=25.0, ge=0)
+    max_hold_seconds: float = Field(default=1800.0, ge=0)
     stop_loss_poll_seconds: float = Field(default=15.0, ge=0)
 
 
@@ -85,12 +86,17 @@ class SafetySettings(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     thresholds: SafetyThresholds = Field(default_factory=SafetyThresholds)
-    # None derives paper_equity_sol * max_trade_fraction at the composition root.
+    # None derives paper_bankroll_usdc * max_trade_fraction at a live SOL price.
+    # Seconds between paper position-watch polls on the supervisor clock.
+    position_watch_interval_s: float = Field(default=30.0, ge=0)
+    # Open positions read per poll. The rest wait for a later tick.
+    position_watch_max_per_poll: int = Field(default=1, ge=0)
     honeypot_probe_sol: Decimal | None = Field(
         default=None,
         description=(
             "Override SOL size for the quote-only honeypot round trip. "
-            "None derives paper_equity_sol * max_trade_fraction."
+            "None derives paper_bankroll_usdc * max_trade_fraction at a live "
+            "SOL/USDC price, and is BLIND when that price is unavailable."
         ),
     )
 

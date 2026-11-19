@@ -11,6 +11,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from pumpgrok.core.bankroll import DEFAULT_PAPER_BANKROLL_USDC
 from pumpgrok.core.units import sol_to_lamports
 
 
@@ -33,6 +34,10 @@ class RiskBudget(BaseModel):
     liquidity_floor_multiple: int = Field(default=10, ge=1)
     partial_fill_fraction: Decimal = Field(default=Decimal("0.02"), gt=0, le=1)
     paper_equity_sol: Decimal = Field(default=Decimal("10"), gt=0)
+    # Operator risk-limits note, 2026-11-19. Sizing and the honeypot probe
+    # use this USDC bankroll. ``paper_equity_sol`` stays the SOL ledger equity
+    # the replay cycle marks to market. Override with PUMPGROK_RISK__PAPER_BANKROLL_USDC.
+    paper_bankroll_usdc: Decimal = Field(default=DEFAULT_PAPER_BANKROLL_USDC, gt=0)
 
     @field_validator("daily_loss_halt_fraction")
     @classmethod

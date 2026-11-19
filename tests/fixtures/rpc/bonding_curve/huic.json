@@ -1,0 +1,33 @@
+{
+  "name": "huic",
+  "mint": "HuicCrxFvSEEhMud5DsAd8E7n2S5wsJLJKQZZ7Popump",
+  "kind": "open",
+  "curve": "8Zih7Tx3ZpicAKnYZVA4ajZcnfHqcQEkRAbojKrHEBdW",
+  "account_len": 166,
+  "account_sha256": "d079feac6fade45f9b89a31494baf5fcbd484010647d953bdb71ebe568f034af",
+  "account_b64": "F7f4N2DYrGBps0ehcVcDAEhN7ldFAQAAaRs1VeBYAgBfvWInKAAAAACAxqR+jQMAADY0oqsEssoEB2T4GeIVQlrOdp9ncoJf9HF8sFGL6RWuAAAMRfffjZ5ylWKEkz9tmLdXAy6D34RgT7XhF//2HVsS+WQAAAAAAAAAAAHlmt26AAAAAMzcwlgAAAAAAOmPizAdAQAAAAAAAAAAAAAAAAAAAAAAAA==",
+  "owner": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+  "slot": 471439660,
+  "quote_is_sol": false,
+  "quote_mint": "pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn",
+  "complete": false,
+  "creator": "4ebZsRYTjHRxrqT8fEdadaiaAp8tJt7tGXKf7yeErhR7",
+  "virtual_token_reserves_units": 940570478883689,
+  "virtual_quote_reserves": 1397339606344,
+  "real_token_reserves_units": 660670478883689,
+  "real_quote_reserves": 172459474271,
+  "real_sol_lamports": 0,
+  "initial_virtual_quote_reserves": 1224880132073,
+  "token_total_supply": 1000000000000000,
+  "creator_fee_bps": 100,
+  "depth": 0,
+  "cross_check": {
+    "dex": {
+      "dex": "pumpfun",
+      "price_usd": "0.000004202",
+      "market_cap_usd": 4202.48,
+      "pair": "8Zih7Tx3ZpicAKnYZVA4ajZcnfHqcQEkRAbojKrHEBdW"
+    },
+    "sol_usd": "74.3786"
+  }
+}

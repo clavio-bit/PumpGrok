@@ -4,8 +4,11 @@ Paper only. The probe asks Jupiter Swap V2 for two order quotes and never
 sends a taker or user public key. It never calls a build, execute, submit,
 or signing endpoint.
 
-The size is the intended position in lamports: ``paper_equity_sol *
-max_trade_fraction`` unless ``safety.honeypot_probe_sol`` overrides it.
+The size is the USDC bankroll times the per-trade fraction, converted to
+lamports with a live SOL/USDC quote, unless ``safety.honeypot_probe_sol``
+overrides it. A missing price is BLIND. An explicit ``probe_lamports`` on
+the probe (tests, or the override already converted) is used only when no
+bankroll is set.
 Leg one buys the mint with that much WSOL. Leg two sells the token
 ``outAmount`` back to WSOL.
 
@@ -25,8 +28,10 @@ from urllib.parse import urlsplit
 
 import httpx
 
+from pumpgrok.core.bankroll import trade_lamports_from_usdc
 from pumpgrok.core.units import sol_to_lamports
 from pumpgrok.tools.market.jupiter import QUOTE_URL, get_quote
+from pumpgrok.tools.market.sol_price import read_sol_price_usdc
 from pumpgrok.tools.safety.checks import CheckResult
 
 WSOL_MINT = "So11111111111111111111111111111111111111112"
@@ -41,7 +46,8 @@ _BANNED_URL_MARKERS: tuple[str, ...] = (
 )
 MAX_MINT_DECIMALS = 18
 DEFAULT_SLIPPAGE_BPS = 50
-DEFAULT_MAX_SLIPPAGE_BPS = 300
+# Operator risk-limits note, 2026-11-19: max slippage 5 percent.
+DEFAULT_MAX_SLIPPAGE_BPS = 500
 _RETAINED_QUANTUM = Decimal("0.00000001")
 _WEIGHT = Decimal("0.15")
 _IMPACT_WARNING = "warning: position-size sell impact exceeds max slippage"
@@ -52,7 +58,10 @@ class HoneypotProbe:
     """Quote client and the intended-position size in lamports."""
 
     client: httpx.AsyncClient
-    probe_lamports: int
+    probe_lamports: int = 0
+    bankroll_usdc: Decimal | None = None
+    trade_fraction: Decimal | None = None
+    sol_price_usdc: Decimal | None = None
     max_slippage_bps: int = DEFAULT_MAX_SLIPPAGE_BPS
     slippage_bps: int = DEFAULT_SLIPPAGE_BPS
     quote_url: str = QUOTE_URL
@@ -81,20 +90,33 @@ def order_quote_url_ok(url: str) -> bool:
 
 def intended_probe_lamports(
     *,
-    paper_equity_sol: Decimal,
     max_trade_fraction: Decimal,
+    paper_equity_sol: Decimal | None = None,
     override_sol: Decimal | None = None,
+    bankroll_usdc: Decimal | None = None,
+    sol_price_usdc: Decimal | None = None,
 ) -> int:
     """Lamports for the honeypot buy.
 
-    ``override_sol`` wins when it is set. Otherwise the size is
-    ``paper_equity_sol * max_trade_fraction``. A non-positive result is 0,
-    which the check treats as blind.
+    ``override_sol`` wins when it is set. A USDC bankroll is converted at
+    ``sol_price_usdc``; a missing price returns 0 (BLIND), and does not fall
+    back to ``paper_equity_sol``. ``paper_equity_sol`` is used only when no
+    bankroll is passed, for a caller that already chose a SOL equity.
     """
-    sol = override_sol if override_sol is not None else paper_equity_sol * max_trade_fraction
-    if sol <= 0:
+    if override_sol is not None:
+        if override_sol <= 0:
+            return 0
+        return sol_to_lamports(override_sol)
+    if bankroll_usdc is not None:
+        sized = trade_lamports_from_usdc(
+            bankroll_usdc=bankroll_usdc,
+            fraction=max_trade_fraction,
+            sol_price_usdc=sol_price_usdc,
+        )
+        return 0 if sized is None else sized
+    if paper_equity_sol is None or paper_equity_sol <= 0 or max_trade_fraction <= 0:
         return 0
-    return sol_to_lamports(sol)
+    return sol_to_lamports(paper_equity_sol * max_trade_fraction)
 
 
 def mint_decimals(metadata: dict[str, Any] | None) -> int | None:
@@ -276,8 +298,26 @@ def _blocked(
         return _outcome(_blind("jupiter quote client unwired"), "unwired")
     if not order_quote_url_ok(probe.quote_url):
         return _outcome(_blind("jupiter quote url is not the order endpoint"), "unwired")
-    if probe.probe_lamports <= 0:
-        return _outcome(_blind("honeypot probe size is not a positive lamport amount"), "config")
+    return None
+
+
+async def _resolved_lamports(probe: HoneypotProbe) -> int | None:
+    """Positive lamports, or ``None`` when a required price is missing."""
+    if probe.bankroll_usdc is not None:
+        price = probe.sol_price_usdc
+        if price is None:
+            price = await read_sol_price_usdc(
+                probe.client,
+                quote_url=probe.quote_url,
+                slippage_bps=probe.slippage_bps,
+            )
+        return trade_lamports_from_usdc(
+            bankroll_usdc=probe.bankroll_usdc,
+            fraction=probe.trade_fraction if probe.trade_fraction is not None else Decimal(0),
+            sol_price_usdc=price,
+        )
+    if probe.probe_lamports > 0:
+        return probe.probe_lamports
     return None
 
 
@@ -309,7 +349,14 @@ async def run_honeypot_check(
     if blocked is not None:
         return blocked
     assert probe is not None
-    buy = await _quote(probe, WSOL_MINT, mint, probe.probe_lamports)
+    lamports = await _resolved_lamports(probe)
+    if lamports is None or lamports <= 0:
+        if probe.bankroll_usdc is not None:
+            reason = "SOL/USDC price unavailable; honeypot size not invented"
+        else:
+            reason = "honeypot probe size is not a positive lamport amount"
+        return _outcome(_blind(reason), "jupiter")
+    buy = await _quote(probe, WSOL_MINT, mint, lamports)
     sized = _buy_token_out(buy)
     if isinstance(sized, CheckResult):
         return _outcome(sized, probe.quote_url)
@@ -318,7 +365,7 @@ async def run_honeypot_check(
         _sell_row(
             sell,
             buy_out=sized,
-            buy_in=probe.probe_lamports,
+            buy_in=lamports,
             buy_quote=buy,
             max_slippage_bps=probe.max_slippage_bps,
         ),

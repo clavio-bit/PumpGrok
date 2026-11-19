@@ -170,10 +170,17 @@ def check_lp_status(lp: dict[str, Any]) -> CheckResult:
     """Pass an open curve or burned PumpSwap LP. Never pass an unknown holder."""
     stage = str(lp.get("stage", "unknown"))
     if stage == "bonding_curve":
+        progress = lp.get("bonding_progress_pct")
+        if lp.get("quote_is_sol") is False:
+            progress_text = "quote mint is not SOL, so progress is not a SOL percent"
+        elif progress is None:
+            progress_text = "bonding progress unread"
+        else:
+            progress_text = f"bonding progress {progress}%"
         return _lp_row(
             "pass",
-            value=stage,
-            reason="token still on the bonding curve; no LP to lock",
+            value="not_migrated",
+            reason=f"bonding curve not migrated; {progress_text}; no AMM LP to lock",
         )
     if stage == "pumpswap":
         return _pumpswap_lp(lp)
@@ -268,6 +275,19 @@ def check_deployer_history(dep: dict[str, Any]) -> CheckResult:
             reason="creator record shows known-bad history",
         )
     seen = int(dep.get("tokens_seen", 0))
+    truncated = bool(dep.get("truncated"))
+    if truncated:
+        return CheckResult(
+            id="deployer_history",
+            status="warn",
+            value=seen,
+            threshold=3,
+            weight=Decimal("0.10"),
+            reason=(
+                f"at least {seen} signatures in the window; "
+                "scan budget exhausted before the lookback ended"
+            ),
+        )
     if seen >= 3:
         return CheckResult(
             id="deployer_history",
@@ -275,7 +295,7 @@ def check_deployer_history(dep: dict[str, Any]) -> CheckResult:
             value=seen,
             threshold=3,
             weight=Decimal("0.10"),
-            reason=f"creator has launched {seen} tokens in the window; serial-launcher caution",
+            reason=(f"creator has {seen} signatures in the window; serial-launcher caution"),
         )
     return CheckResult(
         id="deployer_history",

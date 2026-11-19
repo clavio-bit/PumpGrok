@@ -5,7 +5,7 @@ completion force-closes the open position at the last pre-graduation
 sell_out with reason graduated, a frozen mark, and an Escalation. A 300
 virtual-second silence without a price force-closes at last_good with
 reason blind_flatten and an Escalation. While the bonding-curve layout
-fixture is ASSUMED, RPC-derived entries refuse with data_unavailable.
+prefix is VERIFIED, so an RPC snapshot may price a paper fill.
 """
 
 from __future__ import annotations
@@ -197,39 +197,19 @@ async def test_mark_to_market_values_liquidation_every_60s(tmp_path: Path) -> No
     assert marks[MINT]["source"] == "curve"
 
 
-async def test_assumed_layout_refuses_rpc_entries(tmp_path: Path) -> None:
-    assert LAYOUT_STATUS == "ASSUMED"
-    assert rpc_curve_price_allowed(curve_source="rpc") is False
+async def test_verified_layout_allows_rpc_paper_entries(tmp_path: Path) -> None:
+    assert LAYOUT_STATUS == "VERIFIED"
+    assert rpc_curve_price_allowed(curve_source="rpc") is True
     assert rpc_curve_price_allowed(curve_source="fixture") is True
-    rpc_snap = _snap(S0, T0).model_copy(update={"source": "rpc"})
-    adapter, clock = _harness(tmp_path, [rpc_snap, rpc_snap])
-    request = OrderRequest(
-        ticket_id="SOL-20260201-015",
-        mint=MINT,
-        side=Side.BUY,
-        decision_id=adapter._ids.ulid(),
-        size_lamports=SIZE,
-        max_slippage_bps=100,
-        approval_id=f"apr-{adapter._ids.ulid()}",
-        correlation_id="test",
+    fill = await _buy(
+        *_harness(tmp_path, [_snap(S0, T0).model_copy(update={"source": "rpc"})] * 2),
+        "SOL-20260201-015",
     )
-    task = asyncio.create_task(adapter.place(request, seat="bot-04-sniper", correlation_id="test"))
-    for _ in range(400):
-        if task.done():
-            break
-        clock.advance_to(clock.now() + 1.0)
-        await asyncio.sleep(0)
-    with pytest.raises(OrderRejectedError) as exc_info:
-        await task
-    assert exc_info.value.reason == "data_unavailable"
-    kinds = [e["type"] for e in adapter._store.read(limit=None)]
-    assert "OrderPlaced" not in kinds
-    assert "FillRecorded" not in kinds
+    assert fill.filled_lamports > 0
 
 
 def test_layout_fixture_matches_code_status() -> None:
     fixture = Path("tests/fixtures/rpc/bonding_curve/layout.json")
     record = json.loads(fixture.read_text(encoding="utf-8"))
-    assert record["layout_status"] == LAYOUT_STATUS == "ASSUMED"
-    assert record["layout_status"] != "VERIFIED"
-    assert "probe_error" in record
+    assert record["layout_status"] == LAYOUT_STATUS == "VERIFIED"
+    assert record["tail_status"] == "ASSUMED"

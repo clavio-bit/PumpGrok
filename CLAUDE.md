@@ -102,6 +102,6 @@ Paper-only by default; live mode refuses to start unless every precondition defi
 
 Assumptions and path differences the reader must not mistake for verified fact.
 
-- Curve decoding uses the `[ASSUMED]` layout in `src/pumpgrok/tools/onchain/curve_layout.py` until a live probe confirms it (see `scripts/probe_curve_layout.py`).
+- Curve decoding of the 166-byte `BondingCurve` prefix is verified against the pump IDL and captured mainnet accounts (`src/pumpgrok/tools/onchain/curve_layout.py`). Bytes after offset 166 stay `[ASSUMED]` and are ignored. Quote reserves are lamports only for native SOL and WSOL; any other quote is not priced as SOL.
 - `run --once --replay` exercises the `PaperAdapter` path via `run_once_replay` in `src/pumpgrok/supervisor/scheduler/serve.py`, while `run_replay` in `src/pumpgrok/replay/runner.py` writes the checkpoint verdict row first and does not run the paper adapter.
 - `run --record` is not implemented and exits `EXIT_NOT_IMPLEMENTED` (`src/pumpgrok/cli/codes.py`) from `_run` in `src/pumpgrok/cli/verbs_state.py`.

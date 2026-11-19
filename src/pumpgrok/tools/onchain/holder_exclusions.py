@@ -21,6 +21,7 @@ from decimal import Decimal
 from typing import Any
 
 from pumpgrok.core.errors import DataStale
+from pumpgrok.tools.onchain.curve_accounts import curve_token_accounts
 from pumpgrok.tools.onchain.curve_layout import CurveDecodeError, decode_curve_account_base64
 from pumpgrok.tools.onchain.pumpswap_layout import (
     PUMPSWAP_PROGRAM,
@@ -146,11 +147,14 @@ def exclusion_reason(
     curve: str | None,
     pool: str | None,
     base_vault: str | None,
+    token_accounts: frozenset[str] = frozenset(),
 ) -> str | None:
     """Why ``address`` is a liquidity account, or None when it counts."""
     parts: list[str] = []
     if curve is not None and curve in (address, owner):
         parts.append(_CURVE_REASON)
+    if address in token_accounts:
+        parts.append("bonding-curve token account")
     if base_vault is not None and address == base_vault:
         parts.append(_VAULT_REASON)
     if pool is not None and address == pool:
@@ -200,6 +204,7 @@ def _partition(
     *,
     curve: str,
     pool: PumpSwapPool | None,
+    token_accounts: frozenset[str],
 ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
     pool_address = None if pool is None else pool.address
     base_vault = None if pool is None else pool.base_vault
@@ -210,7 +215,12 @@ def _partition(
         owner = row.get("owner")
         owner_s = owner if isinstance(owner, str) else None
         reason = exclusion_reason(
-            address, owner_s, curve=curve, pool=pool_address, base_vault=base_vault
+            address,
+            owner_s,
+            curve=curve,
+            pool=pool_address,
+            base_vault=base_vault,
+            token_accounts=token_accounts,
         )
         if reason is None:
             kept.append(row)
@@ -272,7 +282,9 @@ async def _concentrate(
     raw = base.get("holders")
     rows = raw if isinstance(raw, list) else []
     owned = await _with_owners(rpc, rows)
-    kept, exclusions = _partition(owned, curve=curve, pool=pool)
+    kept, exclusions = _partition(
+        owned, curve=curve, pool=pool, token_accounts=curve_token_accounts(mint)
+    )
     return _payload(base, kept, exclusions, pool=pool, lookup=lookup)
 
 

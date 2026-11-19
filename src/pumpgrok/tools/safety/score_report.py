@@ -16,9 +16,11 @@ position (amendment 2026-11-13). Transfer tax is required and reads the
 mint account (amendment 2026-11-13).
 Recommendation only: RISK issues the verdict from the journaled report.
 
-``creator`` is caller-supplied (creation event): the mint account carries
-no creator, so without it the deployer check is blind. The creator-share
-veto is armed but dormant while off-chain enrichment is unwired.
+``creator`` is the caller value when it is set. Otherwise the curve
+account creator (bytes 49..81) or, when the curve has migrated, the
+PumpSwap pool ``coin_creator`` is used. The deployer check is blind only
+when none of those can be read. The creator-share veto is armed but
+dormant while off-chain enrichment is unwired.
 """
 
 from __future__ import annotations
@@ -39,10 +41,12 @@ from pumpgrok.core.tool import RetryPolicy, Tool, ToolInput, ToolOutput, ToolSpe
 from pumpgrok.tools._common import SOLANA_RPC_SOURCE, MintStr, meta_now, utcnow
 from pumpgrok.tools.market.liquidity import LiquidityIn, run_liquidity
 from pumpgrok.tools.onchain.authorities_tool import AuthoritiesIn, run_authorities
+from pumpgrok.tools.onchain.curve_layout import CurveDecodeError, decode_curve_account_base64
 from pumpgrok.tools.onchain.deployer_history import DeployerHistoryIn, run_deployer_history
 from pumpgrok.tools.onchain.holder_exclusions import run_concentration
 from pumpgrok.tools.onchain.lp_status import LpStatusIn, run_lp_status
-from pumpgrok.tools.onchain.rpc import RpcClient
+from pumpgrok.tools.onchain.pumpswap_pool import lookup_pumpswap_pool
+from pumpgrok.tools.onchain.rpc import RpcClient, RpcError
 from pumpgrok.tools.onchain.token_metadata import TokenMetadataIn, run_token_metadata
 from pumpgrok.tools.safety.checks import (
     ADVISORY_IDS,
@@ -141,6 +145,7 @@ class _Readings:
     top: dict[str, Any] | None
     dep: dict[str, Any] | None
     liq: dict[str, Any] | None
+    creator: str | None = None
 
 
 # Direction of each threshold: a higher value is stricter for the fields below
@@ -216,6 +221,66 @@ async def _fetch(call: Awaitable[dict[str, Any]]) -> dict[str, Any] | None:
         return None
 
 
+def _usable_creator(value: object) -> str | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        DeployerHistoryIn(creator=value)
+    except ValueError:
+        return None
+    return value
+
+
+def _creator_on(payload: dict[str, Any] | None, *keys: str) -> str | None:
+    if payload is None:
+        return None
+    for key in keys:
+        found = _usable_creator(payload.get(key))
+        if found is not None:
+            return found
+    return None
+
+
+async def _creator_from_curve(rpc: RpcClient, curve_account: str) -> str | None:
+    try:
+        result = await rpc.call("getAccountInfo", [curve_account, {"encoding": "base64"}])
+    except RpcError:
+        return None
+    if not isinstance(result, dict):
+        return None
+    value = result.get("value")
+    if not isinstance(value, dict):
+        return None
+    try:
+        state = decode_curve_account_base64(value.get("data"))
+    except CurveDecodeError:
+        return None
+    return _usable_creator(state.creator)
+
+
+async def _resolve_creator(
+    inp: ScoreReportIn, rpc: RpcClient, lp: dict[str, Any] | None
+) -> str | None:
+    """Caller creator, else the curve account, else the PumpSwap coin creator."""
+    supplied = _usable_creator(inp.creator)
+    if supplied is not None:
+        return supplied
+    on_lp = _creator_on(lp, "creator", "coin_creator")
+    if on_lp is not None:
+        return on_lp
+    on_curve = await _creator_from_curve(rpc, inp.curve_account)
+    if on_curve is not None:
+        return on_curve
+    try:
+        lookup = await lookup_pumpswap_pool(rpc, inp.mint)
+    except DataStale:
+        return None
+    pool = lookup.pool
+    if pool is None:
+        return None
+    return _usable_creator(pool.coin_creator) or _usable_creator(pool.creator)
+
+
 async def _read_all(
     inp: ScoreReportIn, rpc: RpcClient, runnable: list[CheckId], *, intended_lamports: int
 ) -> _Readings:
@@ -244,9 +309,10 @@ async def _read_all(
         if "top10_concentration" in needed
         else None
     )
+    creator = await _resolve_creator(inp, rpc, lp) if "deployer_history" in needed else inp.creator
     dep = (
-        await _fetch(run_deployer_history(DeployerHistoryIn(creator=inp.creator or ""), rpc))
-        if "deployer_history" in needed and inp.creator is not None
+        await _fetch(run_deployer_history(DeployerHistoryIn(creator=creator), rpc))
+        if "deployer_history" in needed and creator is not None
         else None
     )
     liq = (
@@ -263,7 +329,7 @@ async def _read_all(
         if "liquidity_depth" in needed
         else None
     )
-    return _Readings(auth=auth, lp=lp, meta=meta, top=top, dep=dep, liq=liq)
+    return _Readings(auth=auth, lp=lp, meta=meta, top=top, dep=dep, liq=liq, creator=creator)
 
 
 def _reader_row(
@@ -348,12 +414,12 @@ def _reader_rows(
             )
         )
     if "deployer_history" in runnable:
-        if inp.creator is None:
+        if readings.creator is None:
             rows.append(
                 _blind(
                     "deployer_history",
                     Decimal("0.10"),
-                    "creator not supplied; window unscanned",
+                    "creator not on the curve account or the PumpSwap pool",
                 )
             )
         else:
@@ -444,6 +510,49 @@ def _verdict(
     if score < Decimal(str(active.conditional_below_score)):
         return "CONDITIONAL"
     return "CLEAR"
+
+
+def _status(rows: list[CheckResult], check_id: str) -> str | None:
+    for row in rows:
+        if row.id == check_id:
+            return row.status
+    return None
+
+
+def _cap_clear(
+    verdict: Literal["CLEAR", "CONDITIONAL", "KILL"],
+) -> Literal["CLEAR", "CONDITIONAL", "KILL"]:
+    if verdict == "CLEAR":
+        return "CONDITIONAL"
+    return verdict
+
+
+def _apply_paper_caps(
+    verdict: Literal["CLEAR", "CONDITIONAL", "KILL"], rows: list[CheckResult]
+) -> Literal["CLEAR", "CONDITIONAL", "KILL"]:
+    """Bundler BLIND and a deployer WARN cannot leave the report CLEAR.
+
+    In paper, bundler BLIND is at most CONDITIONAL, and only when honeypot,
+    lp_status and liquidity_depth are live passes. Otherwise that BLIND is
+    KILL. A deployer_history WARN is at most CONDITIONAL. A KILL stays a KILL.
+    """
+    if verdict == "KILL":
+        return verdict
+    if _status(rows, "deployer_history") == "warn":
+        verdict = _cap_clear(verdict)
+    if _status(rows, "bundler_cluster") != "blind":
+        return verdict
+    live = all(
+        _status(rows, check_id) == "pass"
+        for check_id in (
+            "honeypot",
+            "lp_status",
+            "liquidity_depth",
+        )
+    )
+    if not live:
+        return "KILL"
+    return _cap_clear(verdict)
 
 
 def _kill_facts(
@@ -553,7 +662,10 @@ async def run_score_report(
     blind_required, advisory_blind_checks, failed_required = _kill_facts(
         rows, advisory_active=advisory_active
     )
-    verdict = _verdict(score, hard_veto or bool(blind_required) or bool(failed_required), active)
+    verdict = _apply_paper_caps(
+        _verdict(score, hard_veto or bool(blind_required) or bool(failed_required), active),
+        rows,
+    )
 
     out = {
         "score": int(score),
