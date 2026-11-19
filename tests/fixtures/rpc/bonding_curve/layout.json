@@ -1,1 +1,35 @@
-{"account_b64":null,"account_len":null,"account_sha256":null,"candidate_layouts":{"idl_order":["vtok","vsol","rtok","rsol","supply","complete"],"repo_order":["vsol","vtok","rsol","rtok","supply","complete"]},"commitment":"confirmed","context_slot":null,"cross_check":null,"decoded_under":"none","discriminator_hex":null,"discriminator_reference_assumed":"17b7f83760d8ac60","endpoint":"https://api.mainnet-beta.solana.com","fixture":"bonding_curve_layout","layout_id":"repo-order-49B-v1","layout_status":"ASSUMED","mint":null,"pda":null,"probe_error":"getHealth ok (HTTP 200 result ok in 0.07s); getProgramAccounts program 6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P dataSize 49 failed twice: TimeoutError read timed out at 20s, then command timeout at 90s on retry. No account bytes observed, no decode attempted, no discriminator observed. Fixture stays ASSUMED; RPC-derived entries fail closed with data_unavailable.","probed_at":"2026-10-21T20:35:00Z","probed_by":"executor 04-04","program_id":"6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P (ASSUMED, training knowledge, unconfirmed)","rpc_endpoint_host":"api.mainnet-beta.solana.com (no key sent)"}
+{
+  "fixture": "bonding_curve_layout",
+  "layout_status": "VERIFIED",
+  "tail_status": "ASSUMED",
+  "idl": "https://github.com/pump-fun/pump-public-docs/blob/main/idl/pump.json",
+  "idl_account": "BondingCurve",
+  "discriminator_hex": "17b7f83760d8ac60",
+  "verified_len": 166,
+  "field_order": [
+    "virtual_token_reserves",
+    "virtual_quote_reserves",
+    "real_token_reserves",
+    "real_quote_reserves",
+    "token_total_supply",
+    "complete",
+    "creator",
+    "is_mayhem_mode",
+    "is_cashback_coin",
+    "quote_mint",
+    "creator_fee_bps",
+    "can_edit_creator_fee",
+    "is_holder_reward",
+    "creator_fee",
+    "protocol_fees",
+    "depth",
+    "initial_virtual_quote_reserves",
+    "post_complete_base_out",
+    "post_complete_quote_in"
+  ],
+  "sol_quote_mints": [
+    "11111111111111111111111111111111",
+    "So11111111111111111111111111111111111111112"
+  ],
+  "note": "Bytes after offset 166 are not in this IDL snapshot and stay ASSUMED. Quote reserves are lamports only for the SOL quote mints above."
+}

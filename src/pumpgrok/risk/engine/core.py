@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Mapping
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, Literal
 
@@ -70,6 +71,8 @@ class RiskEngine(_EngineSteps):
         observe_only: frozenset[str] = frozenset(),
         scan_kill_verdicts: bool = True,
         reputation: ReputationBook | None = None,
+        usdc_sizing: bool = False,
+        sol_price_usdc: Decimal | None = None,
     ) -> None:
         self._store = store
         self._budget = budget
@@ -92,6 +95,10 @@ class RiskEngine(_EngineSteps):
         self._live_check = live_check
         self._observe_only = observe_only
         self._scan_kill_verdicts = scan_kill_verdicts
+        # When set, buy caps use paper_bankroll_usdc converted at sol_price_usdc.
+        # A missing price refuses the buy. Replay leaves this off.
+        self._usdc_sizing = usdc_sizing
+        self._sol_price_usdc = sol_price_usdc
         self._decisions: dict[str, RiskDecision] = {}
         # Breaker name -> order_hash of the order holding its admitted probe.
         self._probe_owners: dict[str, str] = {}
@@ -100,6 +107,10 @@ class RiskEngine(_EngineSteps):
     def reputation(self) -> ReputationBook | None:
         """Attached reputation book, if the desk wired one (R62)."""
         return self._reputation
+
+    def note_sol_price_usdc(self, price: Decimal | None) -> None:
+        """Record a SOL/USDC price for USDC sizing. ``None`` keeps buys BLIND."""
+        self._sol_price_usdc = price
 
     def set_reputation(self, book: ReputationBook | None) -> None:
         """Attach (or detach) the book; a rebuilt book takes effect at once."""

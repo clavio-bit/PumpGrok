@@ -161,7 +161,7 @@ For sells (ExactIn token units): `out_amount = sell_out(S0,T0,t) * (10_000 - ven
 
 At confirmation time (after latency, section 2.5) the fill is recomputed on the reserves observed then, `(S1, T1)`. If `out_at_confirmation < other_amount_threshold` the order is rejected with `reason=slippage_exceeded` and the ledger records both numbers. For a partial fill (section 2.6) the threshold is recomputed for the executed size, `filled_lamports` (or `filled_units`), before the comparison, so a partial outcome is never compared against a full-size threshold (R38, F-m3). This mirrors what the on-chain program would do with `max_sol_cost` / `min_sol_output` (vendor TODO at executor.py:151-156,170-171). There is no retry: the single-send rule (`rules/pumpgrok-team.mdc:30`) is implemented as PaperAdapter idempotency on `(ticket_id, side, decision_id)` (R18, R23), so a rejected order ends the order; a new order needs a new `decision_id` (and, under `manual-ticket`, a fresh approval).
 
-`slippage_bps` comes from the order (the ticket's approved max slippage) and is capped by `limits.max_slippage_bps` (default 300, REVIEW).
+`slippage_bps` comes from the order (the ticket's approved max slippage) and is capped by `limits.max_slippage_bps` (default 500, operator risk-limits note 2026-11-19).
 
 ### 2.5 Confirmation latency (`latency.py`)
 
@@ -549,7 +549,7 @@ paper_equity_sol          = 10           # D6; the one SOL-denominated key, conv
 
 [limits]                                 # engine knobs that are not part of the risk budget (REVIEW)
 min_trade_lamports        = 10000000     # vendor MIN_TRADE_SOL = 0.01 (risk.py:36)
-max_slippage_bps          = 300
+max_slippage_bps          = 500          # operator risk-limits note 2026-11-19
 one_position_per_creator  = true         # vendor FilterConfig (pipeline.py:376-384)
 daily_loss_basis          = "total"      # total = realized + unrealized (conservative); "realized" = vendor behaviour
 blind_max_s               = 300          # R25

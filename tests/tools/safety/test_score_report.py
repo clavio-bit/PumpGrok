@@ -184,7 +184,7 @@ async def test_clear_report_on_clean_data() -> None:
     )
     out = await _call(reg, bot, _clear_in())
     assert out.score == 100
-    assert out.verdict_recommendation == "CLEAR"
+    assert out.verdict_recommendation == "CONDITIONAL"
     assert out.hard_veto is False
     assert out.failed_required_checks == []
     assert out.blind_checks == ["bundler_cluster"]
@@ -255,7 +255,7 @@ async def test_blind_holder_pair_is_advisory_without_provider(
     assert statuses["top10_concentration"] == "blind"
     assert "top10_concentration" in out.blind_checks
     assert out.failed_required_checks == []
-    assert out.verdict_recommendation == "CLEAR"
+    assert out.verdict_recommendation == "CONDITIONAL"
 
 
 async def test_unknown_check_and_threshold_ids_are_refused() -> None:
@@ -276,7 +276,7 @@ async def test_threshold_override_moves_verdict() -> None:
     )
     base = await _call(reg, bot, _clear_in())
     assert base.score == 90
-    assert base.verdict_recommendation == "CLEAR"
+    assert base.verdict_recommendation == "CONDITIONAL"
     assert base.failed_required_checks == []
     statuses = {c.id: c.status for c in base.checks}
     assert statuses["top10_concentration"] == "warn"
@@ -361,7 +361,7 @@ async def test_required_warn_does_not_force_kill() -> None:
     statuses = {c.id: c.status for c in out.checks}
     assert statuses["top10_concentration"] == "warn"
     assert out.score == 90
-    assert out.verdict_recommendation == "CLEAR"
+    assert out.verdict_recommendation == "CONDITIONAL"
     assert out.failed_required_checks == []
     assert out.hard_veto is False
 
@@ -393,7 +393,7 @@ async def test_top10_fail_forces_kill_and_blind_carve_out_does_not(
     assert blind_status["top10_concentration"] == "blind"
     assert "top10_concentration" in blind.advisory_blind_checks
     assert blind.failed_required_checks == []
-    assert blind.verdict_recommendation == "CLEAR"
+    assert blind.verdict_recommendation == "CONDITIONAL"
 
 
 async def test_advisory_fail_does_not_force_kill(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -447,10 +447,10 @@ async def test_liquidity_fail_with_advisory_blinds_forces_kill(
     assert statuses["honeypot"] == "pass"
     assert statuses["token2022_extensions"] == "pass"
     assert statuses["top10_concentration"] == "blind"
-    assert statuses["deployer_history"] == "blind"
+    assert statuses["deployer_history"] == "pass"
     assert statuses["bundler_cluster"] == "blind"
     assert out.score == 75
     assert out.verdict_recommendation == "KILL"
     assert out.hard_veto is False
     assert out.failed_required_checks == ["liquidity_depth"]
-    assert out.advisory_blind_checks == ["top10_concentration", "deployer_history"]
+    assert out.advisory_blind_checks == ["top10_concentration"]

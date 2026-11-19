@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 import random
 import re
+from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -315,6 +316,7 @@ def build_operator_registry(
     price_source: PriceSource | None = None,
     p_drop: float = 0.0,  # CLI default: deterministic confirms; replay passes seeded curves
     seed: int | None = None,  # composition-root seed (INT-05); defaults to settings.replay.seed
+    sol_price_usdc: Decimal | None = None,
 ) -> tuple[ToolRegistry, dict[str, BotManifest], httpx.AsyncClient]:
     """Compose the full 37-tool operator registry (TOOL-011, R63).
 
@@ -368,6 +370,8 @@ def build_operator_registry(
             state_dir=data_dir,
         ),
         get_reserves=curves.last.get,
+        usdc_sizing=True,
+        sol_price_usdc=sol_price_usdc,
     )
     # R62: a missing file is an empty healthy book; a corrupt file quarantines
     # to a degraded book, which refuses buys with reputation_degraded. The degraded marker
@@ -405,10 +409,15 @@ def build_operator_registry(
         honeypot=HoneypotProbe(
             client=client,
             probe_lamports=intended_probe_lamports(
-                paper_equity_sol=budget.paper_equity_sol,
                 max_trade_fraction=budget.max_trade_fraction,
                 override_sol=settings.safety.honeypot_probe_sol,
             ),
+            bankroll_usdc=(
+                None
+                if settings.safety.honeypot_probe_sol is not None
+                else budget.paper_bankroll_usdc
+            ),
+            trade_fraction=budget.max_trade_fraction,
             max_slippage_bps=settings.limits.max_slippage_bps,
             quote_url=settings.jupiter.quote_url,
         ),

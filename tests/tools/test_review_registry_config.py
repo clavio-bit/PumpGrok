@@ -95,7 +95,8 @@ def test_operator_registry_forwards_safety_thresholds(
     assert thresholds.kill_below_score == 55.0
     assert thresholds == settings.safety.thresholds
     assert seen["honeypot"] is not None
-    assert seen["honeypot"].probe_lamports == 200_000_000
+    assert seen["honeypot"].bankroll_usdc == settings.risk.paper_bankroll_usdc
+    assert seen["honeypot"].probe_lamports == 0
     assert seen["honeypot"].max_slippage_bps == settings.limits.max_slippage_bps
     assert seen["honeypot"].quote_url == settings.jupiter.quote_url
 

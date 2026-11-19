@@ -1,0 +1,33 @@
+{
+  "name": "gato",
+  "mint": "HsprHxBRgiVaQdRf3TnKNuZZtaX9JUSPgMFdAkk6pump",
+  "kind": "graduated",
+  "curve": "6cuBZ4JurfWF1aEMfJkSbGPh33N6d1zQLfDsE9hE8pR2",
+  "account_len": 166,
+  "account_sha256": "5b8ee6cf57c39ff357a76f452ad1a5bc2d0cc57e8fb982695931d08bdba3e238",
+  "account_b64": "F7f4N2DYrGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAxqR+jQMAAUCu6dIU59xgFmI8kaYjIQZX0LLDjOmdKVihlGCL48zSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+  "owner": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+  "slot": 471439743,
+  "quote_is_sol": true,
+  "quote_mint": "11111111111111111111111111111111",
+  "complete": true,
+  "creator": "5MVneCfDge5vtf4C7QZmczCJbBB8vfvDbMqvopvkBLJm",
+  "virtual_token_reserves_units": 0,
+  "virtual_quote_reserves": 0,
+  "real_token_reserves_units": 0,
+  "real_quote_reserves": 0,
+  "real_sol_lamports": 0,
+  "initial_virtual_quote_reserves": 0,
+  "token_total_supply": 1000000000000000,
+  "creator_fee_bps": 0,
+  "depth": 0,
+  "cross_check": {
+    "dex": {
+      "dex": "pumpswap",
+      "price_usd": "0.002054",
+      "market_cap_usd": 2027805,
+      "pair": "5E3dXLXGwmTDCokA51WYYaKttjFZBwqCoyUHBUi5gt2m"
+    },
+    "sol_usd": "74.3786"
+  }
+}

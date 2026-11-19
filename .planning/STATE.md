@@ -15,7 +15,7 @@ progress:
 current_phase: 12
 stopped_at: "Phase 12 verified 12/12 at 9d32a35 (report commit 57da233). Draft PRs open for bot-02-risk, bot-09-journal and bot-00-chief on phase-12-event-runtime; not merged. Resume after the owner adds approved_by to the three v4-p12 receipts and the PRs merge. Phase 13 starts only after Phase 12 merges (ROADMAP Execution Order)."
 ---
-paid_rpc_provider: none
+paid_rpc_provider: helius
 
 # Project State
 

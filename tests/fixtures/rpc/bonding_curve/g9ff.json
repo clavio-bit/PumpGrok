@@ -1,0 +1,38 @@
+{
+  "name": "g9ff",
+  "mint": "G9FFfstBYuh2N6Us5iybQQGDQXG8m9D7grYoMqefpump",
+  "kind": "open",
+  "curve": "Eid76LG4gKdDfYmtEywjKPvVQD34zq3WU64UrmWuPj1b",
+  "account_len": 166,
+  "account_sha256": "cd5906dfa0603f9fd10de8ebd419ddee26df9ae57e93bb2d3a2bf0673f2163a5",
+  "account_b64": "F7f4N2DYrGAxof0lP8QDAAcpuhEHAAAAMQnr2a3FAgAHfZYVAAAAAACAxqR+jQMAAO5LuyDr9+2AglwlFWCJW0Cln7Tvz/vgIfQhOQ/rG9yQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADFTAAAAAAAAIx5AAAAAAAAAACsI/wGAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+  "owner": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+  "slot": 471439632,
+  "quote_is_sol": true,
+  "quote_mint": "11111111111111111111111111111111",
+  "complete": false,
+  "creator": "H3D1X1mushAjMYTSHp447hgqkfPCLrRKAzUMEg3CmmUs",
+  "virtual_token_reserves_units": 1060200429494577,
+  "virtual_quote_reserves": 30362183943,
+  "real_token_reserves_units": 780300429494577,
+  "real_quote_reserves": 362183943,
+  "real_sol_lamports": 362183943,
+  "initial_virtual_quote_reserves": 30000000000,
+  "token_total_supply": 1000000000000000,
+  "creator_fee_bps": 0,
+  "depth": 0,
+  "cross_check": {
+    "dex": {
+      "dex": "pumpfun",
+      "price_usd": "0.000002134",
+      "market_cap_usd": 2134.4,
+      "pair": "Eid76LG4gKdDfYmtEywjKPvVQD34zq3WU64UrmWuPj1b"
+    },
+    "sol_usd": "74.3786",
+    "mcap_sol": "28.638154728",
+    "progress": "0.004260987564705882352941176471",
+    "mcap_usd_ours": "2130.0658552520208",
+    "mcap_gap": "0.002030615043093703148425787106",
+    "ok": true
+  }
+}

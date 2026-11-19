@@ -16,6 +16,7 @@ import os
 import sys
 from contextlib import redirect_stderr, redirect_stdout
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -99,6 +100,8 @@ def _registry(tmp_path: Path, curves: ScriptedCurves):
         ledger_path=tmp_path / "ledger.sqlite",
         price_source=curves,  # type: ignore[arg-type]
         p_drop=0.0,
+        # 10 USDC/SOL makes 2 USDC equal 0.2 SOL, the size these verbs place.
+        sol_price_usdc=Decimal("10"),
     )
     assert manifests["bot-04-sniper"].id == SNIPER
     return reg, manifests, client

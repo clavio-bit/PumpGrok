@@ -2,6 +2,21 @@
 
 All notable changes to PumpGrok are recorded here. The format follows Keep a Changelog.
 
+## [Unreleased] - paper stability: verified curve layout and risk parity
+
+### Fixed
+
+- The bonding-curve decoder follows the published pump IDL `BondingCurve` struct (166 bytes, discriminator `sha256("account:BondingCurve")[:8]`). Field order is virtual token, virtual quote, real token, real quote, supply, complete, then creator at bytes 49..81 and the rest of the IDL fields. Accounts shorter than 166 bytes are rejected. Longer accounts decode the prefix. Quote reserves are lamports only for native SOL and WSOL. An incomplete SOL curve above 90 SOL real or 200 SOL virtual is rejected and the caller goes BLIND. Captured mainnet bytes live in `tests/fixtures/rpc/bonding_curve/`. The G9FF SOL curve's market cap matches DexScreener within 0.3 percent. Paper only.
+- `lp_status` reports an open curve as not migrated and includes bonding progress for a SOL quote. `liquidity_depth` uses real SOL versus the probe size. A non-SOL quote is BLIND rather than a fake SOL number. Top-10 concentration excludes the curve PDA and its token account.
+- `deployer_history` paginates `getSignaturesForAddress` with a 5,000-signature budget. Hitting the budget sets `truncated` and the check says `at least N`. The creator is read from the curve account or the PumpSwap `coin_creator` when the caller does not supply one.
+- Trade size and the honeypot probe are `paper_bankroll_usdc` (default 100) times `max_trade_fraction` (2 percent), converted with a live SOL/USDC quote. A missing price is BLIND. The default slippage cap is 500 bps. Exit defaults are SL 20, TP 60, trailing 25, max hold 1800 s. `paper_equity_sol` stays the replay ledger equity. All of these stay overridable by config and `PUMPGROK_*` env.
+- A paper report with `bundler_cluster` BLIND is at most CONDITIONAL, and only when honeypot, `lp_status`, and `liquidity_depth` pass. Otherwise that BLIND is KILL. A `deployer_history` WARN is at most CONDITIONAL. With `paid_rpc_provider: helius` recorded, a top10 or deployer BLIND is KILL.
+- `watch_open_position` watches an open paper position for a creator sell or transfer, an LP fail, a mint or freeze authority, a liquidity drop, and a honeypot re-probe. A trigger appends a paper `rug_alert`. It does not send a transaction. The supervisor tick does not poll it, so replay is unchanged.
+
+### Added
+
+- `docs/RISK_PARITY.md` maps each RISK rule to the code and the test that enforces it. `tests/safety/test_risk_parity.py` covers the bundler cap, the deployer cap, and the helius record.
+
 ## [Unreleased] - v4 Phase 12: event runtime core
 
 ### Changed

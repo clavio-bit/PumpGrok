@@ -14,6 +14,8 @@ max_open_positions = 3
 max_trades_per_day = 20
 liquidity_floor_multiple = 10
 partial_fill_fraction = "0.02"
+# Operator risk-limits note, 2026-11-19. Sizing bankroll, not the SOL ledger.
+paper_bankroll_usdc = "100"
 
 [replay]
 seed = 20260101
@@ -29,6 +31,10 @@ ws_max_queue = 16
 
 [rpc]
 endpoints = ["https://api.mainnet-beta.solana.com"]
+
+# Operator risk-limits note, 2026-11-19: 500 bps.
+[limits]
+max_slippage_bps = 500
 
 [grok]
 base_url = "https://api.x.ai/v1"
@@ -73,11 +79,12 @@ metrics = 0.30
 [scoring]
 timing_cache_seconds = 900.0
 
+# Operator risk-limits note, 2026-11-19.
 [exits]
-stop_loss_pct = 30.0
-take_profit_pct = 120.0
-trailing_stop_pct = 35.0
-max_hold_seconds = 3600.0
+stop_loss_pct = 20.0
+take_profit_pct = 60.0
+trailing_stop_pct = 25.0
+max_hold_seconds = 1800.0
 stop_loss_poll_seconds = 15.0
 
 [ops]

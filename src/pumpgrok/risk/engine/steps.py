@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from fractions import Fraction
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -16,6 +17,7 @@ if TYPE_CHECKING:
     from pumpgrok.ledger.store import LedgerStore
     from pumpgrok.risk.limits import EngineLimits
 
+from pumpgrok.core.bankroll import trade_lamports_from_usdc
 from pumpgrok.core.errors import CorruptState
 from pumpgrok.core.ids import calling_seat
 from pumpgrok.ledger.reducer import LedgerState
@@ -46,6 +48,8 @@ class _EngineSteps:
         _live_check: Callable[[], list[str]] | None
         _observe_only: frozenset[str]
         _get_reserves: Callable[[str], tuple[int, int] | None] | None
+        _usdc_sizing: bool
+        _sol_price_usdc: Decimal | None
 
         def _fold(self) -> LedgerState: ...
         def _now_ts(self) -> str: ...
@@ -328,12 +332,25 @@ class _EngineSteps:
         if mint_creator and self._creator_open(mint_creator, ctx.state):
             raise _Fail("creator_already_open", f"creator={mint_creator}")
 
+    def _usdc_cap(self, fraction: Decimal) -> int | None:
+        """Lamports from the USDC bankroll, or ``None`` when the price is missing."""
+        if not self._usdc_sizing:
+            return -1
+        return trade_lamports_from_usdc(
+            bankroll_usdc=self._budget.paper_bankroll_usdc,
+            fraction=fraction,
+            sol_price_usdc=self._sol_price_usdc,
+        )
+
     def _step_max_trade_fraction(self, ctx: _StepCtx) -> None:
         ctx.mark("max_trade_fraction")
         if not ctx.is_buy:
             return
         assert ctx.final_size is not None
-        cap = int(self._budget.max_trade_fraction * ctx.equity)
+        sized = self._usdc_cap(self._budget.max_trade_fraction)
+        if sized is None:
+            raise _Fail("max_trade_fraction", "sol_price_unavailable")
+        cap = int(self._budget.max_trade_fraction * ctx.equity) if sized < 0 else sized
         if ctx.final_size > cap:
             ctx.final_size = cap
             ctx.capped = True
@@ -346,7 +363,11 @@ class _EngineSteps:
         assert ctx.final_size is not None
         pos = ctx.state.positions.get(ctx.order.mint)
         basis = int(pos.cost_basis_lamports) if pos is not None else 0
-        cap = int(self._budget.max_token_fraction * ctx.equity) - basis
+        sized = self._usdc_cap(self._budget.max_token_fraction)
+        if sized is None:
+            raise _Fail("max_token_fraction", "sol_price_unavailable")
+        equity_cap = int(self._budget.max_token_fraction * ctx.equity) if sized < 0 else sized
+        cap = equity_cap - basis
         if ctx.final_size > cap:
             if cap < int(self._limits.min_trade_lamports):
                 raise _Fail("max_token_fraction", f"cap={cap} below minimum")

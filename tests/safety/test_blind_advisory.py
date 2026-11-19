@@ -56,7 +56,7 @@ def _curve_b64() -> str:
 
 
 def _handler(
-    *, holders_ok: bool = True, jsonparsed_ok: bool = True
+    *, holders_ok: bool = True, jsonparsed_ok: bool = True, signatures_ok: bool = True
 ) -> Callable[[httpx.Request], httpx.Response]:
     curve = _curve_b64()
 
@@ -112,6 +112,10 @@ def _handler(
         elif method == "getTokenSupply":
             result = {"context": {"slot": 9}, "value": {"amount": "1000000000000", "decimals": 6}}
         elif method == "getSignaturesForAddress":
+            if not signatures_ok:
+                return httpx.Response(
+                    200, json={"jsonrpc": "2.0", "id": 1, "error": {"code": -32005}}
+                )
             result = [{"signature": "d1", "slot": 1, "blockTime": _NOW - 100}]
         else:
             raise AssertionError(f"unexpected method {method}")
@@ -255,7 +259,7 @@ async def test_deployer_blind_is_advisory_without_provider(
 ) -> None:
     _write_record(tmp_path, monkeypatch, "paid_rpc_provider: none\n")
     payload = ScoreReportIn(mint=MINT, curve_account=CURVE)
-    reg, bot = _run_with(_handler(), payload)
+    reg, bot = _run_with(_handler(signatures_ok=False), payload)
     out = await _call(reg, bot, payload)
     statuses = {c.id: c.status for c in out.checks}
     assert statuses["deployer_history"] == "blind"
@@ -295,7 +299,7 @@ async def test_deployer_blind_reverts_to_kill_with_provider(
 ) -> None:
     _write_record(tmp_path, monkeypatch, "paid_rpc_provider: provider-name\n")
     payload = ScoreReportIn(mint=MINT, curve_account=CURVE)
-    reg, bot = _run_with(_handler(), payload)
+    reg, bot = _run_with(_handler(signatures_ok=False), payload)
     out = await _call(reg, bot, payload)
     statuses = {c.id: c.status for c in out.checks}
     assert statuses["deployer_history"] == "blind"
