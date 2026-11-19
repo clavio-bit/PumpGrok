@@ -21,17 +21,20 @@ daily loss halt 5 percent, exits SL -20 percent, TP +60 percent, trailing
 | Creator comes from the curve account (bytes 49..81) or the PumpSwap `coin_creator` when the caller omits it | `_resolve_creator` in `src/pumpgrok/tools/safety/score_report.py` | `tests/tools/onchain/test_curve_fixtures.py`; live score artifacts |
 | Slippage cap default 500 bps | `EngineLimits.max_slippage_bps` in `src/pumpgrok/risk/limits.py`; paper overlay `[limits]` | `tests/config/test_settings_surface_characterization.py` |
 | Trade size is 100 USDC times 2 percent, converted at a live SOL/USDC price. No price is BLIND, not 0.2 SOL | `trade_lamports_from_usdc` in `src/pumpgrok/core/bankroll.py`; `read_sol_price_usdc` in `src/pumpgrok/tools/market/sol_price.py`; honeypot resolve in `src/pumpgrok/tools/safety/checks/honeypot.py`; `RiskEngine` `usdc_sizing` in `src/pumpgrok/risk/engine/steps.py` | `tests/tools/safety/test_honeypot.py` |
-| Daily loss halt 5 percent of ledger equity. The fraction cannot exceed 0.05 | `RiskBudget.daily_loss_halt_fraction` in `src/pumpgrok/core/risk_budget.py`; `_step_daily_loss_halt` | `tests/characterization/test_vendor_config.py`; `tests/integrity/test_daily_loss_integer.py` |
-| Exits: SL 20, TP 60, trail 25, hold 1800 s | `ExitsSettings` in `src/pumpgrok/config/sections/engine.py`; paper, dev, and live overlays | `tests/characterization/test_vendor_config.py` |
+| Daily loss halt is 5 percent of the 100 USDC bankroll. The loss is realised plus unrealised P&L converted at the live SOL price. A missing price refuses new entries and does not use the 10 SOL ledger. Replay without USDC sizing still uses the lamport baseline so fixture hashes stay stable | `_detect_breach` in `src/pumpgrok/risk/engine/steps.py`; `daily_loss_exceeds_bankroll` in `src/pumpgrok/core/bankroll.py` | `tests/risk/test_usdc_daily_loss.py`; `tests/integrity/test_daily_loss_integer.py` |
+| Exits: SL 20, TP 60, trail 25, hold 1800 s, enforced by the paper exit watcher | `ExitsSettings` in `src/pumpgrok/config/sections/engine.py`; `exit_signal` in `src/pumpgrok/engine/exits.py`; `ExitRules` | `tests/engine/test_exit_defaults.py`; `tests/replay/test_replay_exits.py` |
+| Open paper positions are polled from the supervisor tick. Interval `safety.position_watch_interval_s` (30 s) and at most `position_watch_max_per_poll` (1) reads per poll. A trigger is a paper `rug_alert` plus a paper close | `PaperPositionPoller` in `src/pumpgrok/supervisor/position_watch.py`; `_poll_open_positions` in `src/pumpgrok/supervisor/scheduler/supervisor.py`; wired from `run_once_replay` and serve | `tests/supervisor/test_position_watch_tick.py` |
 | Open curve is not migrated. Progress is real SOL over 85 SOL when the quote is SOL | `check_lp_status` in `src/pumpgrok/tools/safety/checks/readers.py`; `curve_progress` | `tests/tools/onchain/test_curve_fixtures.py`; `artifacts/score-g9ff.json` |
 | Liquidity depth on an open SOL curve is real SOL versus the probe size. A non-SOL quote is BLIND | `run_liquidity` in `src/pumpgrok/tools/market/liquidity.py` | `tests/tools/market/test_market_reads.py`; live score artifacts |
 | Top 10 excludes the curve PDA and its token account | `curve_token_accounts` in `src/pumpgrok/tools/onchain/curve_accounts.py`; `exclusion_reason` | `tests/tools/onchain/test_curve_fixtures.py` |
 | Incomplete SOL real reserves above 90 SOL, or virtual reserves above 200 SOL, are rejected (BLIND), not reported | `_check_quote_bounds` in `src/pumpgrok/tools/onchain/curve_layout.py` | `tests/tools/onchain/test_curve_layout.py` |
 | Paper position watch: creator sell or transfer, LP fail, mint or freeze authority set, liquidity drop, honeypot re-probe. The signal is a paper `rug_alert`. No live send | `src/pumpgrok/tools/safety/position_watch.py` | `tests/tools/safety/test_position_watch.py` |
 
-The supervisor tick does not poll `watch_open_position`. Replay stays on
-fixture prices and the SOL ledger equity. A paper caller passes the report
-to `append_paper_watch` and, when it wants the sell, to the paper closer.
+The supervisor tick calls the poller. Replay fixture cycles attach it too.
+A failed read does not write a row and does not move the fixture clock.
+The replay risk engine leaves USDC sizing off, so its daily-loss check
+stays on lamport equity and the pinned replay hashes do not move. The
+operator paper engine (`usdc_sizing`) measures the halt in USDC.
 
 `bundler_cluster` still has no data source, so it is BLIND by construction.
 Under the cap above, a paper report cannot be CLEAR while that check is blind.

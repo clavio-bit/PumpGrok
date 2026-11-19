@@ -17,9 +17,10 @@ Watched now:
 - a honeypot re-probe fails or is blind
 
 An unreadable source is listed on the report and does not by itself emit
-an exit. The supervisor tick does not poll this yet, so replay stays
-unchanged. A caller that wants the exit must pass ``close`` (the paper
-adapter) or submit the returned signal through the paper path.
+an exit. The supervisor tick polls open positions through
+``PaperPositionPoller`` on ``safety.position_watch_interval_s``, at most
+``position_watch_max_per_poll`` positions per poll. A trigger appends the
+paper ``rug_alert`` and closes through the paper adapter.
 """
 
 from __future__ import annotations

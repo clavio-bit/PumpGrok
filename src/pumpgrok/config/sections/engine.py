@@ -87,6 +87,10 @@ class SafetySettings(BaseModel):
 
     thresholds: SafetyThresholds = Field(default_factory=SafetyThresholds)
     # None derives paper_bankroll_usdc * max_trade_fraction at a live SOL price.
+    # Seconds between paper position-watch polls on the supervisor clock.
+    position_watch_interval_s: float = Field(default=30.0, ge=0)
+    # Open positions read per poll. The rest wait for a later tick.
+    position_watch_max_per_poll: int = Field(default=1, ge=0)
     honeypot_probe_sol: Decimal | None = Field(
         default=None,
         description=(

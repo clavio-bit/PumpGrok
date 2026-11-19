@@ -74,7 +74,7 @@ Engine constants that are not budget keys (home: `[risk.engine]` in `risk/limits
 | `safety.thresholds.*` | per docs/TOOL_CATALOG.md:245-249 | mixed | REVIEW | ten-check list `agents/risk.md:40-49` | `safety.score_report` tests (n3) |
 | `signal.require_llm` | false | bool | REVIEW | paper evaluation continues on rule-based scoring when x.ai is down; `true` makes the desk observe-only for buys without the LLM (replay never falls back, R27) | INV-R-34 |
 
-Sizing uses `risk.paper_bankroll_usdc` (default 100) times `max_trade_fraction` (0.02), converted to lamports at a live SOL/USDC quote. That is 2 USDC, not 0.2 SOL. A missing price is BLIND and is not replaced with the 10 SOL ledger equity. `paper_equity_sol` (default 10) remains the replay ledger equity the daily-loss halt measures. The mapping of every rule to code and tests is `docs/RISK_PARITY.md`.
+Sizing uses `risk.paper_bankroll_usdc` (default 100) times `max_trade_fraction` (0.02), converted to lamports at a live SOL/USDC quote. That is 2 USDC, not 0.2 SOL. A missing price is BLIND and is not replaced with the 10 SOL ledger equity. The operator daily-loss halt is 5 percent of that same 100 USDC bankroll, using realised plus unrealised P&L in USDC. A missing price refuses new entries. `paper_equity_sol` (default 10) remains the replay ledger equity. The mapping of every rule to code and tests is `docs/RISK_PARITY.md`.
 
 ### 2.3 What a limit breach looks like
 

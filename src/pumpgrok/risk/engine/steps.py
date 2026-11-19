@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from pumpgrok.ledger.store import LedgerStore
     from pumpgrok.risk.limits import EngineLimits
 
-from pumpgrok.core.bankroll import trade_lamports_from_usdc
+from pumpgrok.core.bankroll import daily_loss_exceeds_bankroll, trade_lamports_from_usdc
 from pumpgrok.core.errors import CorruptState
 from pumpgrok.core.ids import calling_seat
 from pumpgrok.ledger.reducer import LedgerState
@@ -123,6 +123,72 @@ class _EngineSteps:
                 return True
         return False
 
+    def _usdc_daily_breach(self, pnl_lamports: int) -> bool | None:
+        """USDC loss against the paper bankroll. ``None`` means the price is missing."""
+        return daily_loss_exceeds_bankroll(
+            pnl_lamports=pnl_lamports,
+            sol_price_usdc=self._sol_price_usdc,
+            bankroll_usdc=self._budget.paper_bankroll_usdc,
+            halt_fraction=self._budget.daily_loss_halt_fraction,
+        )
+
+    def _apply_daily_loss(
+        self,
+        pnl_lamports: int,
+        *,
+        equity: int,
+        day_start: int,
+        ts_utc: str,
+        source: str,
+        correlation_id: str,
+    ) -> str | None:
+        """Halt on the USDC bankroll, or on lamports when USDC sizing is off.
+
+        ``price_unavailable`` means the SOL price is missing. Callers refuse
+        new entries and do not fall back to the SOL ledger.
+        """
+        if self._usdc_sizing:
+            breached = self._usdc_daily_breach(pnl_lamports)
+            if breached is None:
+                return "price_unavailable"
+            if not breached:
+                return None
+        else:
+            loss_lamports = -pnl_lamports
+            limit = Fraction(str(self._budget.daily_loss_halt_fraction))
+            if loss_lamports * limit.denominator < day_start * limit.numerator:
+                return None
+        self._append_daily_halt(
+            equity=equity,
+            day_start=day_start,
+            ts_utc=ts_utc,
+            source=source,
+            correlation_id=correlation_id,
+        )
+        return "daily_loss"
+
+    def _append_daily_halt(
+        self,
+        *,
+        equity: int,
+        day_start: int,
+        ts_utc: str,
+        source: str,
+        correlation_id: str,
+    ) -> None:
+        with _suppress_integrity():
+            self._store.append(
+                **self._halt_row(
+                    reason="daily_loss",
+                    detail=FLOOR_HALTED_DAILY,
+                    equity=equity,
+                    day_start=day_start,
+                    ts_utc=ts_utc,
+                    source=source,
+                    correlation_id=correlation_id,
+                )
+            )
+
     def _detect_breach(
         self,
         state: LedgerState,
@@ -141,25 +207,17 @@ class _EngineSteps:
                 f"daily-loss check failed: day-start equity is {day_start}; "
                 "refusing to treat it as zero loss"
             )
-        # Integer cross-multiplication: the loss in lamports over the day-start
-        # baseline meets the halt fraction without any float ratio.
-        loss_lamports = day_start - equity
-        limit = Fraction(str(self._budget.daily_loss_halt_fraction))
         drawdown_limit = float(self._budget.drawdown_halt_fraction)
-        if loss_lamports * limit.denominator >= day_start * limit.numerator:
-            with _suppress_integrity():
-                self._store.append(
-                    **self._halt_row(
-                        reason="daily_loss",
-                        detail=FLOOR_HALTED_DAILY,
-                        equity=equity,
-                        day_start=day_start,
-                        ts_utc=ts_utc,
-                        source=source,
-                        correlation_id=correlation_id,
-                    )
-                )
-            return "daily_loss"
+        daily = self._apply_daily_loss(
+            equity - day_start,
+            equity=equity,
+            day_start=day_start,
+            ts_utc=ts_utc,
+            source=source,
+            correlation_id=correlation_id,
+        )
+        if daily is not None:
+            return daily
         drawdown = (peak - equity) / peak if peak > 0 else 0.0
         if drawdown >= drawdown_limit:
             with _suppress_integrity():
@@ -384,6 +442,10 @@ class _EngineSteps:
             source=ctx.source,
             correlation_id=ctx.correlation_id,
         )
+        if breach == "price_unavailable":
+            if ctx.is_buy:
+                raise _Fail("daily_loss_halt", "sol_price_unavailable")
+            return
         if breach == "daily_loss":
             raise _Fail("daily_loss_halt", FLOOR_HALTED_DAILY)
 

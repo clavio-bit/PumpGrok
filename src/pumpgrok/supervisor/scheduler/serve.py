@@ -10,9 +10,12 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from pumpgrok.config.settings import ExitsSettings
+import httpx
+
+from pumpgrok.config.settings import ExitsSettings, load_settings
 from pumpgrok.core.ids import Clock
 from pumpgrok.core.risk_budget import RiskBudget
+from pumpgrok.core.tool import RetryPolicy
 from pumpgrok.engine.pipeline import BUY, evaluate_candidates
 from pumpgrok.ledger.active_set import load_verified_param_set, read_active_set
 from pumpgrok.ledger.paths import PAPER_LEDGER_PATH
@@ -26,6 +29,7 @@ from pumpgrok.risk.limits import EngineLimits
 from pumpgrok.supervisor.health import HealthServer
 from pumpgrok.supervisor.lifecycle import install_signal_handlers, shutdown
 from pumpgrok.supervisor.metrics import Metrics
+from pumpgrok.supervisor.position_watch import PaperPositionPoller
 from pumpgrok.supervisor.scheduler.degraded import DegradedState, kill_switch_engaged
 from pumpgrok.supervisor.scheduler.orders import _check_cycle_rows, _replay_trading
 from pumpgrok.supervisor.scheduler.replay_cycles import _replay_cycles
@@ -36,12 +40,49 @@ from pumpgrok.supervisor.scheduler.replay_runtime import (
     open_replay_runtime,
 )
 from pumpgrok.supervisor.scheduler.supervisor import ROSTER, TICK_S, Supervisor
+from pumpgrok.tools.onchain.rpc import RpcClient
 
 if TYPE_CHECKING:
     from pumpgrok.supervisor.scheduler.replay_runtime import _ReplayTrading
     from pumpgrok.upgrade.params import ParamSet
 
 log = logging.getLogger("pumpgrok.supervisor.scheduler")
+
+
+def _paper_poller(
+    runtime: Any,
+    *,
+    interval_s: float | None,
+    max_per_poll: int | None,
+) -> tuple[PaperPositionPoller, httpx.AsyncClient]:
+    """One paper watch bound to the desk RPC. Retries do not sleep the fixture clock."""
+    settings = load_settings()
+    safety = settings.safety
+    interval = safety.position_watch_interval_s if interval_s is None else interval_s
+    limit = safety.position_watch_max_per_poll if max_per_poll is None else max_per_poll
+    client = httpx.AsyncClient()
+    rpc = RpcClient(
+        list(settings.rpc.endpoints),
+        client,
+        runtime.clock,
+        retry=RetryPolicy(attempts=1, base_s=0.0, max_s=0.0),
+    )
+
+    async def _close(*, mint: str, ticket_id: str, reason: str) -> dict[str, Any]:
+        closed: dict[str, Any] = await runtime.adapter.close_position(
+            mint=mint, ticket_id=ticket_id, reason=reason
+        )
+        return closed
+
+    poller = PaperPositionPoller(
+        store=runtime.store,
+        clock=runtime.clock,
+        rpc=rpc,
+        close=_close,
+        interval_s=interval,
+        max_per_poll=limit,
+    )
+    return poller, client
 
 
 def run_once_replay(
@@ -56,6 +97,8 @@ def run_once_replay(
     budget: RiskBudget | None = None,
     limits: EngineLimits | None = None,
     active_set: ParamSet | None = None,
+    watch_interval_s: float | None = None,
+    watch_max_per_poll: int | None = None,
 ) -> ReplayResult:
     """AUTO-006: replay verdict, then one full recorded timeline, offline.
 
@@ -81,6 +124,7 @@ def run_once_replay(
         limits=limits,
         active_set=active_set,
     )
+    watch_client: httpx.AsyncClient | None = None
     try:
         trading = _replay_trading(runtime)
         rng = make_rng(seed)
@@ -100,6 +144,11 @@ def run_once_replay(
             filter_cfg=seat_filter,
             trading=trading,
         )
+        poller, watch_client = _paper_poller(
+            runtime,
+            interval_s=watch_interval_s,
+            max_per_poll=watch_max_per_poll,
+        )
         supervisor = Supervisor(
             store=runtime.store,
             clock=runtime.clock,
@@ -114,6 +163,8 @@ def run_once_replay(
             risk=runtime.risk,
             budget=budget,
             seat_cadences=FIXTURE_SEAT_CADENCES,
+            position_watch=poller.poll,
+            watch_interval_s=0.0,
         )
         before = runtime.store.count()
         ticks = asyncio.run(
@@ -133,6 +184,8 @@ def run_once_replay(
         final_seq = int(runtime.store.read(limit=None)[-1]["seq"])
         events_hash = ledger_events_hash(runtime.ledger_path)
     finally:
+        if watch_client is not None:
+            asyncio.run(watch_client.aclose())
         runtime.store.close()
     return replace(
         result,
@@ -290,6 +343,8 @@ def _build_serve(
     budget: RiskBudget | None = None,
     limits: EngineLimits | None = None,
     active_set: ParamSet | None = None,
+    watch_interval_s: float | None = None,
+    watch_max_per_poll: int | None = None,
 ) -> _ServeParts:
     """Build the serve parts over a replayed ledger; see :func:`build_serve_replay`."""
     run_replay(
@@ -359,6 +414,11 @@ def _build_serve(
             return {"ledger_seq": seq, "kill_switch": kill_switch_engaged(store)}
 
         metrics = Metrics(snapshot=_snapshot)
+        poller, _watch_client = _paper_poller(
+            runtime,
+            interval_s=watch_interval_s,
+            max_per_poll=watch_max_per_poll,
+        )
         supervisor = Supervisor(
             store=store,
             clock=runtime.clock,
@@ -374,6 +434,8 @@ def _build_serve(
             budget=budget,
             cycle_observer=metrics.observe,
             seat_cadences=FIXTURE_SEAT_CADENCES,
+            position_watch=poller.poll,
+            watch_interval_s=0.0,
         )
         rules = _ServeRules(
             events=runtime.dataset.events,

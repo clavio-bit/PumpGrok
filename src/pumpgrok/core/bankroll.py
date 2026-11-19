@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from pumpgrok.core.units import sol_to_lamports
+from pumpgrok.core.units import LAMPORTS_PER_SOL, sol_to_lamports
 
 # Operator risk-limits note, 2026-11-19.
 DEFAULT_PAPER_BANKROLL_USDC = Decimal("100")
@@ -37,3 +37,35 @@ def trade_lamports_from_usdc(
     if sol <= 0:
         return None
     return sol_to_lamports(sol)
+
+
+def pnl_usdc(*, pnl_lamports: int, sol_price_usdc: Decimal | None) -> Decimal | None:
+    """Realised plus unrealised P&L in USDC. ``None`` when the SOL price is missing.
+
+    ``pnl_lamports`` is equity now minus equity at the start of the window.
+    A negative result is a loss. No price is not converted from the SOL ledger.
+    """
+    if sol_price_usdc is None or sol_price_usdc <= 0:
+        return None
+    sol = Decimal(pnl_lamports) / Decimal(LAMPORTS_PER_SOL)
+    return sol * sol_price_usdc
+
+
+def daily_loss_exceeds_bankroll(
+    *,
+    pnl_lamports: int,
+    sol_price_usdc: Decimal | None,
+    bankroll_usdc: Decimal,
+    halt_fraction: Decimal,
+) -> bool | None:
+    """True when the USDC loss is at least ``halt_fraction`` of the bankroll.
+
+    ``None`` when the price is missing. Callers fail closed instead of
+    measuring the loss against SOL ledger equity.
+    """
+    pnl = pnl_usdc(pnl_lamports=pnl_lamports, sol_price_usdc=sol_price_usdc)
+    if pnl is None:
+        return None
+    if pnl >= 0:
+        return False
+    return -pnl >= bankroll_usdc * halt_fraction

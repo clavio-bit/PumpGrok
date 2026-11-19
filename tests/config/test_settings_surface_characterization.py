@@ -57,7 +57,8 @@ PINNED_SECTION_DIGESTS: dict[str, str] = {
     "jupiter": "e31754b27eae6e4697ea81a6dc9cf0f9570cd034b5c52c78b7a8eaaf675a043b",
     "filter": "72883161750cfff0c4689337fd3b1814ddee7e64ccf3844b49dde34b7520ef66",
     # 2026-11-19: honeypot size derives from the USDC bankroll at a live SOL price.
-    "safety": "567ad1a3a3aa8d987f02f6a9e83127053fbc0e647fee3279f09dc2ab10506b71",
+    # 2026-11-19: position watch interval and per-poll cap.
+    "safety": "f2c021c1de1ae6382467cb8b4cce960adb9ff71b0ea4efbbc3028699d1efcf53",
     "scoring": "402e94eb3d94528d8823e3682ad940df7f9abc18800edd8da3ac86d5856cde08",
     # 2026-11-19: SL 20, TP 60, trail 25, hold 1800s (operator risk-limits note).
     "exits": "e200c162957e24bf42cf262f6e76fd36010c857040c175ceee2d58b08817224e",
